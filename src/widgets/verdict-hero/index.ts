@@ -1,0 +1,1 @@
+export { VerdictHero } from "./VerdictHero";
