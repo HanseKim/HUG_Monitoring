@@ -17,12 +17,12 @@ const ZONE_TEXT: Record<string, string> = {
 export function ModelDashboardSkeleton() {
   return (
     <div className="space-y-5">
-      <section className="rounded-xl bg-rail p-7">
+      <section className="p-7 rounded-xl bg-rail">
         <Skeleton className="h-4 w-40 !bg-rail-line" />
         <Skeleton className="mt-5 h-24 w-full !bg-rail-line" />
       </section>
       <Card className="p-6">
-        <Skeleton className="h-4 w-48" />
+        <Skeleton className="w-48 h-4" />
         <Skeleton className="mt-4 h-[220px] w-full" />
       </Card>
     </div>
@@ -73,8 +73,8 @@ export function ModelDashboard({ data }: { data: Dash }) {
   return (
     <div className="space-y-5">
       {/* 등급별 계약 분포 (다크) + 성능 지표 */}
-      <section className="rounded-xl bg-rail px-8 py-7 text-white">
-        <div className="flex items-baseline justify-between">
+      <section className="px-8 py-7 text-white rounded-xl bg-rail">
+        <div className="flex justify-between items-baseline">
           <div>
             <p className="caption !text-rail-text">등급별 계약 분포</p>
             <p className="mt-1 text-[12px] text-rail-text/70">
@@ -127,7 +127,7 @@ export function ModelDashboard({ data }: { data: Dash }) {
           </span>
         </div>
 
-        <div className="mt-6 grid grid-cols-4 border-t border-rail-line pt-5">
+        <div className="grid grid-cols-4 pt-5 mt-6 border-t border-rail-line">
           <Metric
             label="워치리스트 사고율"
             value={formatPct(watch.watchRate)}
@@ -157,7 +157,7 @@ export function ModelDashboard({ data }: { data: Dash }) {
 
       {/* 등급별 실제 사고율 */}
       <Card className="p-7">
-        <div className="flex items-baseline justify-between">
+        <div className="flex justify-between items-baseline">
           <div>
             <h3 className="text-[15px] font-bold text-ink">등급별 실제 사고율</h3>
             <p className="mt-1 text-[12.5px] text-muted">
@@ -178,7 +178,7 @@ export function ModelDashboard({ data }: { data: Dash }) {
                   style={{ height: `${(g.actualRate / maxRate) * 100}%` }}
                 />
                 <span
-                  className="absolute left-1/2 h-[7px] w-[7px] -translate-x-1/2 translate-y-1/2 rounded-full border-2 border-surface bg-ink"
+                  className="absolute left-1/2 w-[7px] h-[7px] -translate-x-1/2 translate-y-1/2 rounded-full  bg-ink"
                   style={{ bottom: `${(g.predictedPd / maxRate) * 100}%` }}
                   title={`예측 PD ${g.predictedPd}%`}
                 />
@@ -206,7 +206,7 @@ export function ModelDashboard({ data }: { data: Dash }) {
             <span className="inline-block h-2.5 w-4 rounded-sm bg-grade-danger" /> 실제 사고율
           </span>
           <span className="flex items-center gap-1.5">
-            <span className="inline-block h-2 w-2 rounded-full bg-ink" /> 모델 예측 PD
+            <span className="inline-block w-2 h-2 rounded-full bg-ink" /> 모델 예측 PD
           </span>
           <span className="ml-auto">워치 경계 아래부터 진하게 표시</span>
         </div>
@@ -224,7 +224,7 @@ export function ModelDashboard({ data }: { data: Dash }) {
               .filter((_, i) => i % 2 === 0 || curve[i].isWatchEdge)
               .slice(0, 9)
               .map((p) => (
-                <div key={p.name} className="flex items-center gap-3">
+                <div key={p.name} className="flex gap-3 items-center">
                   <span
                     className={`num w-11 shrink-0 text-[11.5px] ${
                       p.isWatchEdge ? "font-bold text-grade-danger" : "text-muted"
@@ -331,7 +331,7 @@ function Metric({
   divider?: boolean;
 }) {
   return (
-    <div className={divider ? "border-l border-rail-line pl-6" : ""}>
+    <div className={divider ? "pl-6 border-l border-rail-line" : ""}>
       <p className="caption !text-rail-text">{label}</p>
       <p
         className={`num mt-1.5 text-[25px] leading-tight ${
@@ -340,7 +340,7 @@ function Metric({
       >
         {value}
       </p>
-      <p className="mt-1 text-[11.5px] text-rail-text/70">{sub}</p>
+      {/* <p className="mt-1 text-[11.5px] text-rail-text/70">{sub}</p> */}
     </div>
   );
 }
