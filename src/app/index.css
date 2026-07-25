@@ -1,0 +1,45 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    font-family: "Pretendard", -apple-system, BlinkMacSystemFont,
+      "Apple SD Gothic Neo", "Noto Sans KR", sans-serif;
+  }
+  body {
+    @apply bg-canvas text-body antialiased;
+    font-size: 14px;
+    line-height: 1.6;
+  }
+}
+
+@layer utilities {
+  .text-hero {
+    @apply text-[40px] font-normal text-slate;
+    letter-spacing: -0.9px;
+    line-height: 1.2;
+  }
+  .text-section {
+    @apply text-[24px] font-bold text-ink;
+    letter-spacing: -0.6px;
+    line-height: 1.35;
+  }
+  .tabular-nums {
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+@media print {
+  .print-hidden {
+    display: none !important;
+  }
+  body {
+    background: #ffffff !important;
+  }
+  .print-report {
+    max-width: none !important;
+    border: none !important;
+    padding: 0 !important;
+  }
+}
