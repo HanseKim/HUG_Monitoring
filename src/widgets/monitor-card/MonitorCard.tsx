@@ -1,8 +1,8 @@
 import { useState } from "react";
 import type { MonitorContract, Snapshot, TriggerType } from "@/entities/contract";
-import { Badge, Card, Grade13Badge } from "@/shared/ui";
 import { formatPct } from "@/shared/lib/format";
-import { gradeDelta, gradeFromPd } from "@/shared/config/grades";
+import { gradeByIdx, gradeDelta, gradeFromPd } from "@/shared/config/grades";
+import { GradeTrack } from "./GradeTrack";
 
 const TRIGGER_LABEL: Record<TriggerType, string> = {
   T1_정기: "T1 정기",
@@ -15,127 +15,111 @@ const TRIGGER_LABEL: Record<TriggerType, string> = {
 export const snapshotIdx = (s: Snapshot): number =>
   s.gradeIdx ?? gradeFromPd(s.riskPct).idx;
 
-/** 강등 델타 — 정렬 키. 변동 없으면 0 */
+/** 강등 델타 — 정렬 키. 변동 없으면 null */
 export const contractDelta = (c: MonitorContract) =>
   c.after ? gradeDelta(snapshotIdx(c.before), snapshotIdx(c.after)) : null;
 
 export const isDowngrade = (c: MonitorContract) =>
   contractDelta(c)?.direction === "강등";
 
-function SnapshotBox({ snap, tone }: { snap: Snapshot; tone: "before" | "after" }) {
-  const mutedTone = tone === "before";
-  return (
-    <div
-      className={`w-[230px] rounded-lg border p-4 ${
-        mutedTone ? "border-divider bg-canvas" : "border-divider bg-surface"
-      }`}
-    >
-      <p className="mb-2 text-[11px] font-bold text-muted">
-        {mutedTone ? "변동 전" : "변동 후"}
-      </p>
-      <div className={`flex items-center gap-2.5 ${mutedTone ? "opacity-70" : ""}`}>
-        <Grade13Badge idx={snapshotIdx(snap)} />
-        <span
-          className={`num text-[19px] ${mutedTone ? "text-muted" : "font-semibold text-ink"}`}
-        >
-          {formatPct(snap.riskPct)}
-        </span>
-      </div>
-      <p className={`mt-2 text-[12px] ${mutedTone ? "text-faint" : "text-body"}`}>
-        전세가율 {formatPct(snap.jeonseRatio, 0)}
-      </p>
-      <p className="mt-0.5 text-[11px] text-faint">{snap.snapshotAt}</p>
-    </div>
-  );
-}
-
-export function MonitorCard({ contract }: { contract: MonitorContract }) {
+/** 워크리스트 행 — 강등 폭이 곧 처리 우선순위 */
+export function MonitorRow({ contract }: { contract: MonitorContract }) {
   const delta = contractDelta(contract);
   const downgrade = delta?.direction === "강등";
-  // 임차인 고지 — 등급 하락 시 세입자에게 즉시 안내 (데모: 로컬 상태)
   const [noticeSent, setNoticeSent] = useState(false);
 
+  const fromIdx = snapshotIdx(contract.before);
+  const toIdx = contract.after ? snapshotIdx(contract.after) : fromIdx;
+
   return (
-    <Card className={`p-6 ${downgrade ? "border-t-[3px] border-t-grade-danger" : ""}`}>
-      <div className="mb-4 flex items-center justify-between gap-3">
-        <p className="text-[14px] font-bold text-ink">
-          {contract.address}
-          <span className="ml-2 font-normal text-muted">
-            · {contract.houseType} · {contract.contractId}
-          </span>
-        </p>
-        <div className="flex shrink-0 items-center gap-2">
-          {delta?.crossedToSpeculative && (
-            <Badge className="bg-grade-danger-soft text-grade-danger">투기등급 진입</Badge>
-          )}
-          {contract.trigger && (
-            <Badge className="bg-stage-monitor-soft text-stage-monitor">
-              {TRIGGER_LABEL[contract.trigger]}
-            </Badge>
+    <li className="px-6 py-5 transition-colors duration-fast hover:bg-canvas/70">
+      <div className="flex items-start gap-6">
+        {/* 강등 폭 — 우선순위 신호 */}
+        <div className="w-16 shrink-0 pt-0.5">
+          {downgrade ? (
+            <>
+              <p className="num text-[20px] font-semibold leading-none text-grade-danger">
+                ▾{delta!.delta}
+              </p>
+              <p className="mt-1 text-[11px] leading-tight text-muted">등급 강등</p>
+            </>
+          ) : delta ? (
+            <>
+              <p className="num text-[20px] font-semibold leading-none text-grade-caution">!</p>
+              <p className="mt-1 text-[11px] leading-tight text-muted">경보</p>
+            </>
+          ) : (
+            <p className="num pt-1 text-[14px] text-faint">—</p>
           )}
         </div>
-      </div>
 
-      {contract.after ? (
-        <div className="flex items-center gap-4">
-          <SnapshotBox snap={contract.before} tone="before" />
-          <div className="flex flex-col items-center px-1">
-            <span className="text-[18px] text-faint" aria-hidden>
-              →
+        {/* 계약 정보 */}
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
+            <p className="text-[14px] font-bold text-ink">{contract.address}</p>
+            <span className="text-[12px] text-muted">
+              {contract.houseType} · {contract.contractId}
             </span>
-            {delta && delta.delta !== 0 && (
-              <span
-                className={`num mt-1 whitespace-nowrap text-[12px] font-semibold ${
-                  downgrade ? "text-grade-danger" : "text-grade-safe"
-                }`}
-              >
-                {Math.abs(delta.delta)}등급 {delta.direction}
+            {contract.trigger && (
+              <span className="rounded-[3px] border border-divider px-1.5 py-px text-[11px] text-label">
+                {TRIGGER_LABEL[contract.trigger]}
+              </span>
+            )}
+            {delta?.crossedToSpeculative && (
+              <span className="rounded-[3px] bg-grade-danger-soft px-1.5 py-px text-[11px] font-bold text-grade-danger">
+                투기등급 진입
               </span>
             )}
           </div>
-          <SnapshotBox snap={contract.after} tone="after" />
-        </div>
-      ) : (
-        <div className="flex items-center gap-5">
-          <SnapshotBox snap={contract.before} tone="after" />
-          <span className="text-[13px] text-muted">최근 재평가 이후 변동 없음</span>
-        </div>
-      )}
-
-      {contract.reason && (
-        <p className="mt-4 text-[13px] font-bold text-grade-danger">⚠ 트리거: {contract.reason}</p>
-      )}
-      {contract.recommendations.length > 0 && (
-        <p className="mt-1 text-[13px] text-body">
-          권고: {contract.recommendations.join(" · ")}
-        </p>
-      )}
-
-      {downgrade && (
-        <div className="mt-4 flex items-center gap-3 border-t border-divider pt-4">
-          {noticeSent ? (
-            <p className="flex items-center gap-2 text-[13px] font-bold text-stage-notice">
-              ✓ 임차인 고지 발송됨
-              <span className="font-normal text-muted">
-                — 세입자에게 위험등급 상승 안내가 전송되었습니다 (데모)
-              </span>
-            </p>
+          {contract.reason ? (
+            <p className="mt-1.5 text-[12.5px] leading-relaxed text-body">{contract.reason}</p>
           ) : (
-            <>
+            <p className="mt-1.5 text-[12.5px] text-muted">최근 재평가 이후 변동 없음</p>
+          )}
+          {contract.recommendations.length > 0 && (
+            <p className="mt-0.5 text-[12px] text-muted">
+              권고 · {contract.recommendations.join(" · ")}
+            </p>
+          )}
+        </div>
+
+        {/* 13등급 트랙 */}
+        <div className="w-[220px] shrink-0 pt-1">
+          <GradeTrack from={fromIdx} to={toIdx} />
+          <div className="num mt-2 flex items-baseline justify-between text-[12px]">
+            <span className="text-muted">
+              {gradeByIdx(fromIdx).name} {formatPct(contract.before.riskPct)}
+            </span>
+            {contract.after && (
+              <span
+                className={`font-semibold ${downgrade ? "text-grade-danger" : "text-ink"}`}
+              >
+                {gradeByIdx(toIdx).name} {formatPct(contract.after.riskPct)}
+              </span>
+            )}
+          </div>
+          <div className="mt-0.5 flex justify-between text-[10.5px] text-faint">
+            <span>{contract.before.snapshotAt}</span>
+            {contract.after && <span>{contract.after.snapshotAt}</span>}
+          </div>
+        </div>
+
+        {/* 임차인 고지 */}
+        <div className="w-[104px] shrink-0 pt-0.5 text-right">
+          {downgrade &&
+            (noticeSent ? (
+              <p className="text-[12px] font-bold text-stage-notice">✓ 고지됨</p>
+            ) : (
               <button
                 type="button"
                 onClick={() => setNoticeSent(true)}
-                className="h-9 rounded-lg bg-stage-notice px-4 text-[13px] font-bold text-white transition-colors duration-fast hover:opacity-90"
+                className="rounded-md border border-stage-notice px-3 py-1.5 text-[12px] font-bold text-stage-notice transition-colors duration-fast hover:bg-stage-notice hover:text-white"
               >
-                임차인 고지 발송
+                임차인 고지
               </button>
-              <span className="text-[12px] text-muted">
-                임대인 위험등급 상승 — 세입자에게 즉시 안내
-              </span>
-            </>
-          )}
+            ))}
         </div>
-      )}
-    </Card>
+      </div>
+    </li>
   );
 }

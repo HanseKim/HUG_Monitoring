@@ -1,9 +1,17 @@
 import { useEffect, useState } from "react";
 import { useMonitorContracts } from "@/entities/contract";
-import { MonitorSearch, type MonitorFilter } from "@/features/monitor-search";
 import { PageHeader } from "@/widgets/page-header";
-import { MonitorCard, isDowngrade, contractDelta } from "@/widgets/monitor-card";
+import { MonitorRow, isDowngrade, contractDelta } from "@/widgets/monitor-card";
 import { Card, EmptyState, ErrorState, Skeleton } from "@/shared/ui";
+import { getTab } from "@/shared/config/tabs";
+
+type Filter = "all" | "downgrade" | "alert";
+
+const FILTERS: { value: Filter; label: string }[] = [
+  { value: "all", label: "전체" },
+  { value: "downgrade", label: "등급하락" },
+  { value: "alert", label: "경보" },
+];
 
 function useDebounced(value: string, ms = 300) {
   const [v, setV] = useState(value);
@@ -15,15 +23,16 @@ function useDebounced(value: string, ms = 300) {
 }
 
 export function MonitorPage() {
+  const accent = getTab("monitor").accent;
   const [query, setQuery] = useState("");
-  const [filter, setFilter] = useState<MonitorFilter>("all");
+  const [filter, setFilter] = useState<Filter>("all");
   const q = useDebounced(query);
 
   // 기본은 변동 있는 계약만, 검색어가 있으면 무변동 계약도 포함해 검색
   const list = useMonitorContracts(q ? { q } : { changed: true });
   const all = useMonitorContracts({}); // 요약 스탯용 전체
 
-  // 기본 정렬: 강등 폭(delta) 내림차순 — 강등 폭이 곧 처리 우선순위
+  // 기본 정렬: 강등 폭 내림차순 — 강등 폭이 곧 처리 우선순위
   const filtered = (list.data ?? [])
     .filter((c) => {
       if (filter === "downgrade") return isDowngrade(c);
@@ -32,45 +41,81 @@ export function MonitorPage() {
     })
     .sort((a, b) => (contractDelta(b)?.delta ?? -99) - (contractDelta(a)?.delta ?? -99));
 
-  const stats = {
-    total: all.data?.length,
-    downgrades: all.data?.filter(isDowngrade).length,
-    speculative: all.data?.filter((c) => contractDelta(c)?.crossedToSpeculative).length,
-    alerts: all.data?.filter((c) => c.after !== null && !isDowngrade(c)).length,
-  };
+  const stats = [
+    { label: "관리중 계약", value: all.data?.length },
+    { label: "이번달 등급하락", value: all.data?.filter(isDowngrade).length, danger: true },
+    {
+      label: "그중 투기등급 진입",
+      value: all.data?.filter((c) => contractDelta(c)?.crossedToSpeculative).length,
+      danger: true,
+    },
+    {
+      label: "경보",
+      value: all.data?.filter((c) => c.after !== null && !isDowngrade(c)).length,
+    },
+  ];
 
   return (
     <div>
       <PageHeader tabKey="monitor" />
 
-      <div className="mb-5 grid grid-cols-4 gap-5">
-        <StatCard label="관리중 계약" value={stats.total} unit="건" />
-        <StatCard label="이번달 등급하락" value={stats.downgrades} unit="건" danger />
-        <StatCard label="그중 투기등급 진입" value={stats.speculative} unit="건" danger />
-        <StatCard label="경보" value={stats.alerts} unit="건" />
+      {/* 상태 스트립 — 카드 없이 헤어라인으로만 구획 */}
+      <div className="mb-6 flex items-center border-y border-divider py-4">
+        {stats.map((s, i) => (
+          <div key={s.label} className={`flex-1 ${i > 0 ? "border-l border-divider pl-8" : ""}`}>
+            <p className="caption">{s.label}</p>
+            <p
+              className={`num mt-1 text-[26px] leading-tight ${
+                s.danger && (s.value ?? 0) > 0 ? "text-grade-danger" : "text-ink"
+              }`}
+            >
+              {s.value === undefined ? "—" : s.value}
+              <span className="ml-0.5 text-[13px] text-muted">건</span>
+            </p>
+          </div>
+        ))}
       </div>
 
-      <div className="mb-5">
-        <MonitorSearch
-          query={query}
-          onQueryChange={setQuery}
-          filter={filter}
-          onFilterChange={setFilter}
+      {/* 툴바 — 검색 + 필터 탭 */}
+      <div className="mb-4 flex items-center justify-between gap-4">
+        <input
+          className={`h-10 w-[340px] rounded-md border border-hairline bg-surface px-3.5 text-[13.5px] text-ink outline-none transition-colors duration-fast placeholder:text-faint ${accent.focusRing}`}
+          placeholder="주소 또는 계약ID 검색 — 무변동 계약 포함"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
         />
-      </div>
-
-      {list.isPending && (
-        <div className="space-y-4">
-          {[0, 1, 2].map((i) => (
-            <Card key={i} className="space-y-4 p-6">
-              <Skeleton className="h-5 w-2/3" />
-              <div className="flex gap-5">
-                <Skeleton className="h-[120px] w-[220px]" />
-                <Skeleton className="h-[120px] w-[220px]" />
-              </div>
-            </Card>
+        <div className="flex gap-6 border-b border-transparent">
+          {FILTERS.map((f) => (
+            <button
+              key={f.value}
+              type="button"
+              onClick={() => setFilter(f.value)}
+              className={`-mb-px border-b-2 pb-1.5 text-[13.5px] transition-colors duration-fast ${
+                filter === f.value
+                  ? `border-stage-monitor font-bold text-ink`
+                  : "border-transparent text-muted hover:text-label"
+              }`}
+            >
+              {f.label}
+            </button>
           ))}
         </div>
+      </div>
+
+      {/* 워크리스트 */}
+      {list.isPending && (
+        <Card className="divide-y divide-divider">
+          {[0, 1, 2, 3].map((i) => (
+            <div key={i} className="flex gap-6 px-6 py-5">
+              <Skeleton className="h-8 w-16" />
+              <div className="flex-1 space-y-2">
+                <Skeleton className="h-4 w-2/3" />
+                <Skeleton className="h-3 w-1/2" />
+              </div>
+              <Skeleton className="h-8 w-[220px]" />
+            </div>
+          ))}
+        </Card>
       )}
       {list.isError && (
         <ErrorState message={list.error.message} onRetry={() => list.refetch()} />
@@ -85,37 +130,18 @@ export function MonitorPage() {
             }
           />
         ) : (
-          <div className="animate-fade-in space-y-4">
-            {filtered.map((c) => (
-              <MonitorCard key={c.contractId} contract={c} />
-            ))}
-          </div>
+          <Card className="animate-fade-in overflow-hidden">
+            <div className="flex items-center justify-between border-b border-divider bg-canvas/60 px-6 py-2.5">
+              <p className="caption">처리 우선순위 — 강등 폭 내림차순</p>
+              <p className="caption">{filtered.length}건</p>
+            </div>
+            <ul className="divide-y divide-divider">
+              {filtered.map((c) => (
+                <MonitorRow key={c.contractId} contract={c} />
+              ))}
+            </ul>
+          </Card>
         ))}
     </div>
-  );
-}
-
-function StatCard({
-  label,
-  value,
-  unit,
-  danger,
-}: {
-  label: string;
-  value: number | undefined;
-  unit: string;
-  danger?: boolean;
-}) {
-  return (
-    <Card className="p-5">
-      <p className="text-[12px] font-bold text-muted">{label}</p>
-      <p
-        className={`num mt-1.5 text-[26px] ${
-          danger && (value ?? 0) > 0 ? "text-grade-danger" : "text-slate"
-        }`}
-      >
-        {value === undefined ? "—" : `${value}${unit}`}
-      </p>
-    </Card>
   );
 }
