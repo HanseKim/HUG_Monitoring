@@ -5,7 +5,7 @@ import type {
   UnderwriteReq,
   UnderwriteRes,
 } from "@/entities/assessment";
-import type { MonitorContract } from "@/entities/contract";
+import type { MonitorContract, PortfolioSummary, Snapshot } from "@/entities/contract";
 import type { RecoveryReq, RecoveryRes } from "@/entities/recovery-case";
 import { gradeByIdx, gradeFromPd } from "@/shared/config/grades";
 import { PATH_LABEL } from "@/entities/recovery-case";
@@ -252,6 +252,9 @@ const underwriteScore = http.post("/api/underwrite/score", async ({ request }) =
 const SEED_CONTRACTS: MonitorContract[] = [
   {
     contractId: "C-2026-0007",
+    deposit: 290_000_000,
+    strategyBefore: "정기 모니터링",
+    strategyAfter: "든든전세 매입 검토",
     address: "세종 세종시 한솔동 ◎◎파크빌 401호",
     houseType: "다세대주택",
     before: { grade: "안심", riskPct: 2.4, jeonseRatio: 74, snapshotAt: "2026-06-05" },
@@ -262,6 +265,9 @@ const SEED_CONTRACTS: MonitorContract[] = [
   },
   {
     contractId: "C-2026-0042",
+    deposit: 280_000_000,
+    strategyBefore: "정기 모니터링",
+    strategyAfter: "든든전세 매입 검토",
     address: "서울 강서구 화곡동 ○○빌라 302호",
     houseType: "다세대주택",
     before: { grade: "안심", riskPct: 8.2, jeonseRatio: 78, snapshotAt: "2026-06-01" },
@@ -272,6 +278,9 @@ const SEED_CONTRACTS: MonitorContract[] = [
   },
   {
     contractId: "C-2026-0117",
+    deposit: 190_000_000,
+    strategyBefore: "관찰 강화",
+    strategyAfter: "경매 배당 준비",
     address: "인천 미추홀구 주안동 △△오피스텔 1204호",
     houseType: "오피스텔",
     before: { grade: "주의", riskPct: 12.4, jeonseRatio: 84, snapshotAt: "2026-05-15" },
@@ -282,6 +291,9 @@ const SEED_CONTRACTS: MonitorContract[] = [
   },
   {
     contractId: "C-2026-0233",
+    deposit: 220_000_000,
+    strategyBefore: "정기 모니터링",
+    strategyAfter: "협의매입 검토",
     address: "경기 부천시 원미구 □□연립 201호",
     houseType: "연립주택",
     before: { grade: "안심", riskPct: 4.1, jeonseRatio: 72, snapshotAt: "2026-06-20" },
@@ -292,6 +304,9 @@ const SEED_CONTRACTS: MonitorContract[] = [
   },
   {
     contractId: "C-2026-0301",
+    deposit: 240_000_000,
+    strategyBefore: "관찰 강화",
+    strategyAfter: "관찰 강화",
     address: "서울 관악구 신림동 ◇◇빌라 402호",
     houseType: "다세대주택",
     before: { grade: "주의", riskPct: 11.2, jeonseRatio: 83, snapshotAt: "2026-07-01" },
@@ -302,6 +317,9 @@ const SEED_CONTRACTS: MonitorContract[] = [
   },
   {
     contractId: "C-2026-0305",
+    deposit: 210_000_000,
+    strategyBefore: "정기 모니터링",
+    strategyAfter: "정기 모니터링",
     address: "경기 수원시 팔달구 ▽▽오피스텔 808호",
     houseType: "오피스텔",
     before: { grade: "안심", riskPct: 6.8, jeonseRatio: 76, snapshotAt: "2026-07-05" },
@@ -312,6 +330,9 @@ const SEED_CONTRACTS: MonitorContract[] = [
   },
   {
     contractId: "C-2026-0150",
+    deposit: 620_000_000,
+    strategyBefore: "정기 모니터링",
+    strategyAfter: null,
     address: "서울 송파구 잠실동 ☆☆아파트 103동 1501호",
     houseType: "아파트",
     before: { grade: "안심", riskPct: 2.1, jeonseRatio: 62, snapshotAt: "2026-06-10" },
@@ -322,6 +343,9 @@ const SEED_CONTRACTS: MonitorContract[] = [
   },
   {
     contractId: "C-2026-0188",
+    deposit: 250_000_000,
+    strategyBefore: "정기 모니터링",
+    strategyAfter: null,
     address: "대전 유성구 봉명동 ◎◎아파트 205동 902호",
     houseType: "아파트",
     before: { grade: "안심", riskPct: 3.4, jeonseRatio: 68, snapshotAt: "2026-06-14" },
@@ -332,6 +356,9 @@ const SEED_CONTRACTS: MonitorContract[] = [
   },
   {
     contractId: "C-2026-0210",
+    deposit: 210_000_000,
+    strategyBefore: "관찰 강화",
+    strategyAfter: null,
     address: "부산 해운대구 좌동 ◆◆연립 101호",
     houseType: "연립주택",
     before: { grade: "주의", riskPct: 9.8, jeonseRatio: 80, snapshotAt: "2026-06-25" },
@@ -342,16 +369,89 @@ const SEED_CONTRACTS: MonitorContract[] = [
   },
 ];
 
-// 스냅샷에 13등급 필드 부여 (riskPct → 등급 환산)
-const enrichSnapshot = <S extends { riskPct: number }>(s: S): S => {
+/**
+ * 스냅샷에 13등급 + 경제성 지표 부여.
+ * 경매 낙찰가율 78% + 부대비용 8%p 가정 → LGD, 회수율 = 1-LGD, EL = PD × LGD × 보증금
+ */
+const enrichSnapshot = (s: Snapshot, deposit: number): Snapshot => {
   const g = gradeFromPd(s.riskPct);
-  return { ...s, grade13: g.name, gradeIdx: g.idx };
+  const lgd = Math.min(0.95, Math.max(0.05, 1 - 0.78 / (s.jeonseRatio / 100) + 0.08));
+  return {
+    ...s,
+    grade13: g.name,
+    gradeIdx: g.idx,
+    recoveryRate: Math.round((1 - lgd) * 1000) / 10,
+    el: Math.round((s.riskPct / 100) * lgd * deposit),
+  };
 };
-const ENRICHED_CONTRACTS: MonitorContract[] = SEED_CONTRACTS.map((c) => ({
-  ...c,
-  before: enrichSnapshot(c.before),
-  after: c.after ? enrichSnapshot(c.after) : null,
-}));
+const ENRICHED_CONTRACTS: MonitorContract[] = SEED_CONTRACTS.map((c) => {
+  const deposit = c.deposit ?? 250_000_000;
+  return {
+    ...c,
+    deposit,
+    before: enrichSnapshot(c.before, deposit),
+    after: c.after ? enrichSnapshot(c.after, deposit) : null,
+  };
+});
+
+// ── GET /api/monitor/portfolio ── 포트폴리오 전체 요약 (전부 데모용 목데이터)
+// 등급 분포는 2026 홀드아웃 실측 분포를 따름: 투자등급 73% / 투기등급 27%, AAA 6%
+const GRADE_DIST: [number, number][] = [
+  [0, 749],
+  [1, 374],
+  [2, 499],
+  [3, 1373],
+  [4, 2122],
+  [5, 3994],
+  [6, 1498],
+  [7, 874],
+  [8, 499],
+  [9, 250],
+  [10, 150],
+  [11, 62],
+  [12, 36],
+];
+const AVG_DEPOSIT = 229_500_000;
+
+const monitorPortfolio = http.get("/api/monitor/portfolio", async () => {
+  await mockDelay();
+  const grades = GRADE_DIST.map(([idx, count]) => {
+    const g = gradeByIdx(idx);
+    // 상위 등급일수록 평균 보증금이 큼(아파트 비중) — 익스포저 가중
+    const weight = 1.25 - idx * 0.03;
+    return {
+      idx,
+      name: g.name,
+      count,
+      exposure: Math.round((count * AVG_DEPOSIT * weight) / 1_000_000) * 1_000_000,
+    };
+  });
+  const contractCount = grades.reduce((s, g) => s + g.count, 0);
+  const totalExposure = grades.reduce((s, g) => s + g.exposure, 0);
+
+  const res: PortfolioSummary = {
+    asOf: "2026-07-25",
+    contractCount,
+    totalExposure,
+    el: {
+      ytd: 128_400_000_000,
+      month: 21_800_000_000,
+      momDelta: 3_700_000_000,
+      realizedYtd: 94_600_000_000,
+    },
+    recovery: { actualYtd: 74.2, predicted: 75.4, momDelta: 2.4, avgMonths: 8.4 },
+    paths: [
+      { path: "셀프낙찰", count: 142, recoveredAmount: 31_200_000_000 },
+      { path: "배당대기", count: 386, recoveredAmount: 62_800_000_000 },
+      { path: "협의매입", count: 47, recoveredAmount: 9_400_000_000 },
+      { path: "캠코공매", count: 18, recoveredAmount: 2_100_000_000 },
+      { path: "재산추적", count: 9, recoveredAmount: 600_000_000 },
+    ],
+    grades,
+    migration: { downgraded: 4, upgraded: 1, toSpeculative: 2 },
+  };
+  return HttpResponse.json(res);
+});
 
 const monitorContracts = http.get("/api/monitor/contracts", async ({ request }) => {
   await mockDelay();
@@ -451,4 +551,10 @@ const recoveryAnalyze = http.post("/api/recovery/analyze", async ({ request }) =
   return HttpResponse.json(res);
 });
 
-export const handlers = [tenantScore, underwriteScore, monitorContracts, recoveryAnalyze];
+export const handlers = [
+  tenantScore,
+  underwriteScore,
+  monitorContracts,
+  monitorPortfolio,
+  recoveryAnalyze,
+];

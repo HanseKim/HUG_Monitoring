@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import { useMonitorContracts } from "@/entities/contract";
+import { useMonitorContracts, usePortfolioSummary } from "@/entities/contract";
+import { PortfolioSummary, PortfolioSummarySkeleton } from "@/widgets/portfolio-summary";
 import { PageHeader } from "@/widgets/page-header";
 import { MonitorRow, isDowngrade, contractDelta } from "@/widgets/monitor-card";
 import { Card, EmptyState, ErrorState, Skeleton } from "@/shared/ui";
@@ -31,6 +32,7 @@ export function MonitorPage() {
   // 기본은 변동 있는 계약만, 검색어가 있으면 무변동 계약도 포함해 검색
   const list = useMonitorContracts(q ? { q } : { changed: true });
   const all = useMonitorContracts({}); // 요약 스탯용 전체
+  const portfolio = usePortfolioSummary();
 
   // 기본 정렬: 강등 폭 내림차순 — 강등 폭이 곧 처리 우선순위
   const filtered = (list.data ?? [])
@@ -57,9 +59,42 @@ export function MonitorPage() {
 
   return (
     <div>
-      <PageHeader tabKey="monitor" />
+      {/* 인쇄 전용 표지 */}
+      <div className="hidden print:mb-6 print:block">
+        <p className="text-[11px] font-bold tracking-wide text-muted">
+          온전 ONJEON · HUG 내부 리스크 관제
+        </p>
+        <h1 className="mt-1 text-[20px] font-bold text-ink">
+          상시 모니터링 리스크 리포트
+        </h1>
+        <p className="mt-1 text-[11.5px] text-body">
+          기준일 {portfolio.data?.asOf ?? "—"} · 강등 폭 내림차순 · 수치는 데모용 목데이터
+        </p>
+      </div>
 
-      {/* 상태 스트립 — 카드 없이 헤어라인으로만 구획 */}
+      <div className="flex items-start justify-between">
+        <PageHeader tabKey="monitor" />
+        <button
+          type="button"
+          onClick={() => window.print()}
+          className="print-hidden mt-1 rounded-md border border-hairline bg-surface px-4 py-2 text-[13px] font-bold text-label transition-colors duration-fast hover:bg-canvas"
+        >
+          PDF로 저장
+        </button>
+      </div>
+
+      {/* 포트폴리오 전체 요약 */}
+      <div className="mb-6">
+        {portfolio.isPending && <PortfolioSummarySkeleton />}
+        {portfolio.isSuccess && <PortfolioSummary data={portfolio.data} />}
+        {portfolio.isError && (
+          <p className="rounded-xl border border-divider bg-surface px-5 py-4 text-[13px] text-ink">
+            포트폴리오 요약을 불러오지 못했습니다. 아래 계약 목록은 정상 표시됩니다.
+          </p>
+        )}
+      </div>
+
+      {/* 변동 계약 상태 스트립 */}
       <div className="mb-6 flex items-center border-y border-divider py-4">
         {stats.map((s, i) => (
           <div key={s.label} className={`flex-1 ${i > 0 ? "border-l border-divider pl-8" : ""}`}>

@@ -38,11 +38,31 @@
 }
 
 @media print {
+  @page {
+    size: A4 landscape;
+    margin: 12mm;
+  }
   .print-hidden {
     display: none !important;
   }
   body {
     background: #ffffff !important;
+  }
+  /* 다크 패널·등급 바의 배경색을 인쇄에도 유지 */
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+  /* 메인 영역이 사이드바 없이 전폭을 쓰게 */
+  main > div {
+    max-width: none !important;
+    padding: 0 !important;
+  }
+  /* 행·카드가 페이지 경계에서 잘리지 않게 */
+  li,
+  section,
+  .break-inside-avoid {
+    break-inside: avoid;
   }
   .print-report {
     max-width: none !important;
