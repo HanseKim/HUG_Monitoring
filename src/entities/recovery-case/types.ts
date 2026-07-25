@@ -22,6 +22,20 @@ export type RecoveryPath =
   | "캠코공매"
   | "재산추적";
 
+/**
+ * 화면 표시 라벨 — API 스키마의 path 값은 백엔드 합의 계약이라 유지하고,
+ * 사용자에게는 사업명("든든전세")으로 보여준다.
+ */
+export const PATH_LABEL: Record<RecoveryPath, string> = {
+  셀프낙찰: "든든전세",
+  배당대기: "배당대기",
+  협의매입: "협의매입",
+  캠코공매: "캠코공매",
+  재산추적: "재산추적",
+};
+
+export const pathLabel = (p: RecoveryPath): string => PATH_LABEL[p] ?? p;
+
 export type RecoveryRes = {
   path: RecoveryPath;
   score: number;

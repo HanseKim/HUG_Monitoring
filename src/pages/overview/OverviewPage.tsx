@@ -62,7 +62,7 @@ export function OverviewPage() {
             desc="든든전세(자산화) vs 경매 배당"
             value="사고 확정 시"
             branches={[
-              { dot: "bg-stage-safe", label: "든든전세 · 셀프낙찰" },
+              { dot: "bg-stage-safe", label: "든든전세 · 자산화" },
               { dot: "bg-stage-auction", label: "경매 배당 대기" },
             ]}
           />
@@ -89,7 +89,7 @@ export function OverviewPage() {
           </p>
           <p>
             실제로 대위변제가 발생하면 미리 설계한 방향에 따라{" "}
-            <b className="text-ink">든든전세(셀프낙찰로 자산화)</b> 또는{" "}
+            <b className="text-ink">든든전세(HUG 매입으로 자산화)</b> 또는{" "}
             <b className="text-ink">경매 배당</b> 경로로 라우팅되고, 두 경로 모두 실제
             회수율·소요기간이라는 정답 데이터를 만들어냅니다.
           </p>

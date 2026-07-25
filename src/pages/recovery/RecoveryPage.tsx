@@ -5,6 +5,7 @@ import { useRegionStore } from "@/shared/model/region";
 import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip } from "recharts";
 import { analyzeRecovery, useRecoveryAnalyze } from "@/entities/recovery-case";
 import type { RecoveryPath, RecoveryReq, RecoveryRes } from "@/entities/recovery-case";
+import { pathLabel } from "@/entities/recovery-case";
 import { RecoveryForm } from "@/features/recovery-form";
 import { CsvUpload, type CsvRow } from "@/features/csv-upload";
 import { PageHeader } from "@/widgets/page-header";
@@ -74,7 +75,7 @@ function ReportSkeleton() {
   );
 }
 
-// 데모 프리필 — 세종 합성 목데이터. 셀프낙찰 게이트 3개 통과 케이스
+// 데모 프리필 — 세종 합성 목데이터. 든든전세 게이트 3개 통과 케이스
 const DEMO_DETAIL = "한솔동 12-3 ○○빌라 302호";
 const DEMO_REQ: RecoveryReq = {
   caseNo: "2026타경10001",
@@ -94,11 +95,22 @@ const DEMO_REQ: RecoveryReq = {
 /**
  * 모니터링 강등 건별 연계 시나리오 (추정 목데이터) — 세 건이 서로 다른 회수 경로로
  * 갈리도록 물건 상태를 다르게 부여한다.
- * 화곡동(0042): 상태 양호·상계 가능 → 셀프낙찰
+ * 세종 한솔동(0007): 세종 실데이터 기준 건 — 상태 양호·상계 가능 → 든든전세(셀프낙찰)
+ * 화곡동(0042): 상태 양호·상계 가능 → 든든전세
  * 주안동(0117): 대항력 임차인 점유 → 배당대기
  * 부천(0233): 5회 유찰·점유·보수필요 → 협의매입
  */
 const LINK_OVERRIDES: Record<string, Partial<RecoveryReq>> = {
+  "C-2026-0007": {
+    appraisalPrice: 310_000_000,
+    minBidPrice: 217_000_000,
+    subrogationAmount: 300_000_000,
+    seniorAmount: 80_000_000, // 감지된 근저당 8천만원
+    failedBidCount: 0,
+    evictionStatus: "양호",
+    defectStatus: "양호",
+    opposableTenant: "무",
+  },
   "C-2026-0117": { opposableTenant: "유", evictionStatus: "점유중" },
   "C-2026-0233": {
     appraisalPrice: 240_000_000,
@@ -203,10 +215,10 @@ export function RecoveryPage() {
         <Card className="p-5">
           <p className="caption">가용 매입 재원 (분기)</p>
           <p className="num mt-1.5 text-[24px] text-ink">312억원</p>
-          <p className="mt-1 text-[12px] text-muted">셀프낙찰 투입 가능 한도 · 목데이터</p>
+          <p className="mt-1 text-[12px] text-muted">든든전세 매입 투입 가능 한도 · 목데이터</p>
         </Card>
         <Card className="p-5">
-          <p className="caption">셀프낙찰 여력</p>
+          <p className="caption">든든전세 매입 여력</p>
           <p className="num mt-1.5 text-[24px] text-ink">약 14건</p>
           <p className="mt-1 text-[12px] text-muted">평균 낙찰가 기준 환산 · 목데이터</p>
         </Card>
@@ -324,7 +336,7 @@ export function RecoveryPage() {
                           className="h-2.5 w-2.5 rounded-sm"
                           style={{ background: PATH_COLORS[d.name as RecoveryPath] }}
                         />
-                        {d.name} — {d.value}건
+                        {pathLabel(d.name as RecoveryPath)} — {d.value}건
                       </li>
                     ))}
                   </ul>
@@ -361,7 +373,7 @@ export function RecoveryPage() {
                                 className="rounded-md px-2 py-0.5 text-[12px] font-bold text-white"
                                 style={{ background: PATH_COLORS[b.res.path] }}
                               >
-                                {b.res.path}
+                                {pathLabel(b.res.path)}
                               </span>
                             ) : (
                               <span className="text-[12px] text-grade-danger">

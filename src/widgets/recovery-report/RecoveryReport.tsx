@@ -7,6 +7,7 @@ import {
   LabelList,
 } from "recharts";
 import type { RecoveryReq, RecoveryRes } from "@/entities/recovery-case";
+import { pathLabel } from "@/entities/recovery-case";
 import { Button, Card, Table, Th, Td } from "@/shared/ui";
 import { formatKRWShort } from "@/shared/lib/format";
 
@@ -52,7 +53,7 @@ export function RecoveryReport({ req, res, judgedAt }: Props) {
       {/* 판정 히어로 */}
       <div className="flex items-center gap-6 border-b border-divider py-7">
         <span className="rounded-lg bg-recovery-soft px-6 py-2.5 text-[32px] font-bold text-recovery">
-          {res.path}
+          {pathLabel(res.path)}
         </span>
         <div>
           <p className="text-[13px] text-muted">판정 점수</p>
@@ -100,7 +101,7 @@ export function RecoveryReport({ req, res, judgedAt }: Props) {
 
       {/* 게이트 */}
       <section className="border-b border-divider py-7">
-        <h4 className="mb-3 text-[15px] font-bold text-ink">2. 셀프낙찰 게이트 통과 여부</h4>
+        <h4 className="mb-3 text-[15px] font-bold text-ink">2. 든든전세 게이트 통과 여부</h4>
         <Table>
           <thead>
             <tr>

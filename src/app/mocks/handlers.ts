@@ -8,6 +8,7 @@ import type {
 import type { MonitorContract } from "@/entities/contract";
 import type { RecoveryReq, RecoveryRes } from "@/entities/recovery-case";
 import { gradeByIdx, gradeFromPd } from "@/shared/config/grades";
+import { PATH_LABEL } from "@/entities/recovery-case";
 
 const mockDelay = () => delay(800 + Math.random() * 700);
 
@@ -246,8 +247,19 @@ const underwriteScore = http.post("/api/underwrite/score", async ({ request }) =
   return HttpResponse.json(res);
 });
 
-// ── GET /api/monitor/contracts ── 고정 시드 8건
+// ── GET /api/monitor/contracts ── 고정 시드 9건
+// 발제사 실데이터 지역이 세종시이므로 세종 건을 최우선 강등 건으로 배치
 const SEED_CONTRACTS: MonitorContract[] = [
+  {
+    contractId: "C-2026-0007",
+    address: "세종 세종시 한솔동 ◎◎파크빌 401호",
+    houseType: "다세대주택",
+    before: { grade: "안심", riskPct: 2.4, jeonseRatio: 74, snapshotAt: "2026-06-05" },
+    after: { grade: "위험", riskPct: 41.8, jeonseRatio: 97, snapshotAt: "2026-07-22" },
+    trigger: "T3_등기변동",
+    reason: "등기변동 — 근저당 8천만원 설정 + 인근 실거래가 11.3% 하락 반영",
+    recommendations: ["임대인 재산조회", "든든전세 매입 검토", "임차인 우선 고지"],
+  },
   {
     contractId: "C-2026-0042",
     address: "서울 강서구 화곡동 ○○빌라 302호",
@@ -373,7 +385,7 @@ const recoveryAnalyze = http.post("/api/recovery/analyze", async ({ request }) =
   const repairCost =
     req.defectStatus === "보수필요" ? 15_000_000 : req.defectStatus === "경미" ? 5_000_000 : 1_000_000;
 
-  // 자산화(셀프낙찰 후 매각) 기대값: 감정가의 재매각율 - 부대비용
+  // 자산화(든든전세 매입 후 매각) 기대값: 감정가의 재매각율 - 부대비용
   const resaleRate = (multiUnit && metro ? 0.82 : 0.68) - req.failedBidCount * 0.02;
   const eAssetization = Math.round(
     Math.max(0, req.appraisalPrice * resaleRate - evictionCost - repairCost - req.seniorAmount),
@@ -433,7 +445,7 @@ const recoveryAnalyze = http.post("/api/recovery/analyze", async ({ request }) =
       gate.offsetPossible
         ? "대위변제채권으로 매수대금 상계가 가능하여 현금 투입이 최소화됩니다."
         : "상계 요건을 충족하지 못해 매수대금 대부분을 현금으로 납부해야 합니다.",
-      `경제이득(자산화-배당) ${economicGain.toLocaleString("ko-KR")}원과 게이트 통과 여부를 종합하여 「${path}」 경로를 권고합니다.`,
+      `경제이득(자산화-배당) ${economicGain.toLocaleString("ko-KR")}원과 게이트 통과 여부를 종합하여 「${PATH_LABEL[path]}」 경로를 권고합니다.`,
     ],
   };
   return HttpResponse.json(res);
