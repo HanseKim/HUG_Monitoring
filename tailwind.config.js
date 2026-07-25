@@ -4,21 +4,45 @@ export default {
   theme: {
     extend: {
       colors: {
-        canvas: "#f1f3f5",
-        surface: "#ffffff",
-        ink: "#1d2024",
-        slate: "#3c3c3c",
-        body: "#606060",
-        label: "#4b525a",
-        muted: "#858d94",
-        faint: "#9ca5ad",
-        divider: "#dee3e8",
-        hairline: "#d2d2d2",
-        primary: { DEFAULT: "#1268CC", soft: "#EAF2FC" },
+        // 작업 캔버스
+        canvas: "#F5F6F8",
+        surface: "#FFFFFF",
+        ink: "#101B2B",
+        slate: "#1F2B3D",
+        body: "#455263",
+        label: "#3A4656",
+        muted: "#7C8798",
+        faint: "#A3ADBB",
+        divider: "#E3E7EC",
+        hairline: "#CBD3DC",
+        // 관제 레일 (다크 네이비)
+        rail: {
+          DEFAULT: "#0A1628",
+          soft: "#13233B",
+          line: "#22385A",
+          text: "#8FA3BF",
+        },
+        // 기관 앵커
+        hug: { DEFAULT: "#1268CC", soft: "#E8F0FB" },
+        primary: { DEFAULT: "#1268CC", soft: "#E8F0FB" },
+        // 파이프라인 스테이지 (PNG 노드 색 계승 — 해당 스테이지 컨텍스트에서만)
+        stage: {
+          assess: { DEFAULT: "#1268CC", soft: "#E8F0FB" },
+          monitor: { DEFAULT: "#2F80ED", soft: "#EAF3FE" },
+          notice: { DEFAULT: "#16A34A", soft: "#E8F7EE" },
+          policy: { DEFAULT: "#16325C", soft: "#E9EEF6" },
+          strategy: { DEFAULT: "#7C5CD6", soft: "#F1EDFB" },
+          incident: { DEFAULT: "#E8890C", soft: "#FDF3E4" },
+          safe: { DEFAULT: "#12A594", soft: "#E6F6F4" },
+          auction: { DEFAULT: "#D6455D", soft: "#FBEAED" },
+          data: { DEFAULT: "#C29A1B", soft: "#FAF4E2" },
+        },
+        // 기존 탭 키 호환 (구 컴포넌트 클래스 참조 유지)
         tenant: { DEFAULT: "#16A34A", soft: "#E8F7EE" },
-        underwrite: { DEFAULT: "#1268CC", soft: "#EAF2FC" },
-        monitor: { DEFAULT: "#5EA8E5", soft: "#EFF8FE" },
-        recovery: { DEFAULT: "#0B3B7A", soft: "#E9EFF7" },
+        underwrite: { DEFAULT: "#1268CC", soft: "#E8F0FB" },
+        monitor: { DEFAULT: "#2F80ED", soft: "#EAF3FE" },
+        recovery: { DEFAULT: "#12A594", soft: "#E6F6F4" },
+        // 등급 신호등 — 항상 글자 등급 병기
         grade: {
           safe: { DEFAULT: "#16A34A", soft: "#E8F7EE" },
           caution: { DEFAULT: "#F59E0B", soft: "#FEF5E7" },
@@ -27,13 +51,14 @@ export default {
       },
       fontFamily: {
         sans: [
+          "IBM Plex Sans KR",
           "Pretendard",
           "-apple-system",
-          "BlinkMacSystemFont",
           "Apple SD Gothic Neo",
           "Noto Sans KR",
           "sans-serif",
         ],
+        mono: ["IBM Plex Mono", "SF Mono", "Menlo", "monospace"],
       },
       transitionDuration: {
         fast: "120ms",

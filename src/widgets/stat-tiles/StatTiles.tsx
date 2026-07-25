@@ -14,7 +14,7 @@ export function StatTiles({ result }: { result: UnderwriteRes }) {
       <Tile label="익스포저 EAD" value={formatKRWShort(ead)} />
       <Card className="p-5">
         <p className="text-[12px] font-bold text-muted">예상손실 EL vs 예상보험료</p>
-        <p className="mt-2 text-[26px] font-normal tracking-tight text-slate tabular-nums">
+        <p className="num mt-2 text-[24px] text-ink">
           {formatKRWShort(el)}
         </p>
         <div className="mt-3 space-y-1.5">
@@ -30,7 +30,7 @@ function Tile({ label, value }: { label: string; value: string }) {
   return (
     <Card className="p-5">
       <p className="text-[12px] font-bold text-muted">{label}</p>
-      <p className="mt-2 text-[40px] font-normal leading-tight tracking-tight text-slate tabular-nums">
+      <p className="num mt-2 text-[32px] leading-tight text-ink">
         {value}
       </p>
     </Card>

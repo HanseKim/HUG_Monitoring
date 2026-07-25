@@ -17,7 +17,7 @@ type Props = {
 };
 
 export function UnderwriteForm({ loading, onSubmit }: Props) {
-  const accent = getTab("underwrite").accent;
+  const accent = getTab("assess").accent;
   const [applicationId, setApplicationId] = useState(genId());
   const { sido, sigungu, setSido, setSigungu } = useRegionStore();
   const [houseType, setHouseType] = useState("");

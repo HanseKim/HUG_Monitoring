@@ -1,1 +1,0 @@
-export { TenantForm } from "./TenantForm";

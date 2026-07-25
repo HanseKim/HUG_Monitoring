@@ -1,8 +1,10 @@
-export type TabKey = "tenant" | "underwrite" | "monitor" | "recovery";
+export type TabKey = "overview" | "assess" | "monitor" | "policy" | "recovery";
 
 export type TabMeta = {
   key: TabKey;
   path: string;
+  /** 레일에 표시되는 업무 순서 — 실제 플로우 순서라서 의미가 있다 */
+  step: string;
   title: string;
   description: string;
   /** 정적 클래스 매핑 — Tailwind purge 때문에 동적 조합 금지 */
@@ -12,60 +14,85 @@ export type TabMeta = {
     softBg: string;
     border: string;
     focusRing: string;
+    /** 레일 노드 점 색 */
+    dot: string;
   };
 };
 
 export const TABS: TabMeta[] = [
   {
-    key: "tenant",
-    path: "/tenant",
-    title: "임대차계약",
-    description: "계약 전 주소·보증금만으로 전세 위험도를 진단합니다.",
+    key: "overview",
+    path: "/",
+    step: "LOOP",
+    title: "플로우 개요",
+    description: "심사부터 회수·환류까지 — 사고가 나도 끝나지 않는 리스크 루프 현황판.",
     accent: {
-      text: "text-tenant",
-      bg: "bg-tenant",
-      softBg: "bg-tenant-soft",
-      border: "border-tenant",
-      focusRing: "focus:border-tenant",
+      text: "text-stage-data",
+      bg: "bg-stage-data",
+      softBg: "bg-stage-data-soft",
+      border: "border-stage-data",
+      focusRing: "focus:border-stage-data",
+      dot: "bg-stage-data",
     },
   },
   {
-    key: "underwrite",
-    path: "/underwrite",
-    title: "HUG 심사",
-    description: "보증 신청 건의 승인 여부와 예상 손실을 심사합니다.",
+    key: "assess",
+    path: "/assess",
+    step: "01",
+    title: "심사·등급",
+    description: "HUG 126%룰 게이트를 거쳐 모델1이 최초 위험 등급을 산정합니다.",
     accent: {
-      text: "text-underwrite",
-      bg: "bg-underwrite",
-      softBg: "bg-underwrite-soft",
-      border: "border-underwrite",
-      focusRing: "focus:border-underwrite",
+      text: "text-stage-assess",
+      bg: "bg-stage-assess",
+      softBg: "bg-stage-assess-soft",
+      border: "border-stage-assess",
+      focusRing: "focus:border-stage-assess",
+      dot: "bg-stage-assess",
     },
   },
   {
     key: "monitor",
     path: "/monitor",
-    title: "모니터링",
-    description: "보증 발급 이후 계약의 등급 변동과 경보를 추적합니다.",
+    step: "02",
+    title: "상시 모니터링",
+    description: "임대인 정보 변경을 추적해 재등급하고, 위험 상승 시 임차인에게 고지합니다.",
     accent: {
-      text: "text-monitor",
-      bg: "bg-monitor",
-      softBg: "bg-monitor-soft",
-      border: "border-monitor",
-      focusRing: "focus:border-monitor",
+      text: "text-stage-monitor",
+      bg: "bg-stage-monitor",
+      softBg: "bg-stage-monitor-soft",
+      border: "border-stage-monitor",
+      focusRing: "focus:border-stage-monitor",
+      dot: "bg-stage-monitor",
+    },
+  },
+  {
+    key: "policy",
+    path: "/policy",
+    step: "03",
+    title: "정책 인사이트",
+    description: "회수율 예측과 사고 예상 세그먼트를 파악해 인수기준·정책에 반영합니다.",
+    accent: {
+      text: "text-stage-policy",
+      bg: "bg-stage-policy",
+      softBg: "bg-stage-policy-soft",
+      border: "border-stage-policy",
+      focusRing: "focus:border-stage-policy",
+      dot: "bg-stage-policy",
     },
   },
   {
     key: "recovery",
     path: "/recovery",
-    title: "든든전세",
-    description: "대위변제 이후 사건별 최적 회수 경로를 판정합니다.",
+    step: "04",
+    title: "회수 전략",
+    description: "대위변제 발생 시 든든전세(자산화) vs 경매배당을 판정하고, 결과를 모델에 환류합니다.",
     accent: {
-      text: "text-recovery",
-      bg: "bg-recovery",
-      softBg: "bg-recovery-soft",
-      border: "border-recovery",
-      focusRing: "focus:border-recovery",
+      text: "text-stage-safe",
+      bg: "bg-stage-safe",
+      softBg: "bg-stage-safe-soft",
+      border: "border-stage-safe",
+      focusRing: "focus:border-stage-safe",
+      dot: "bg-stage-safe",
     },
   },
 ];

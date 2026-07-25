@@ -45,6 +45,20 @@ const rowToReq = (row: CsvRow): RecoveryReq => ({
 
 const today = () => new Date().toISOString().slice(0, 10);
 
+/** 환류 — 회수 판정 결과가 심사 모델 학습 데이터로 축적됨을 표시 */
+function FeedbackLoopBanner() {
+  return (
+    <div className="print-hidden flex items-center gap-3 rounded-xl border border-stage-data/40 bg-stage-data-soft px-5 py-3.5">
+      <span className="num text-[13px] text-stage-data">↻</span>
+      <p className="text-[13px] text-body">
+        이 판정과 실제 회수 결과(회수율·소요기간)는{" "}
+        <b className="text-ink">최초 심사 모델(모델1)의 학습 데이터로 환류</b>되어 등급 엔진을
+        고도화합니다. <span className="text-muted">누적 축적 1,284건 (데모용 목데이터)</span>
+      </p>
+    </div>
+  );
+}
+
 function ReportSkeleton() {
   return (
     <Card className="space-y-6 p-10">
@@ -95,6 +109,25 @@ export function RecoveryPage() {
     <div>
       <PageHeader tabKey="recovery" />
 
+      {/* 채권회수 전략 수립 — 위험물건 × 현금보유현황으로 회수 방향을 사전 설계 */}
+      <div className="print-hidden mb-5 grid grid-cols-3 gap-5">
+        <Card className="p-5">
+          <p className="caption">가용 매입 재원 (분기)</p>
+          <p className="num mt-1.5 text-[24px] text-ink">312억원</p>
+          <p className="mt-1 text-[12px] text-muted">셀프낙찰 투입 가능 한도 · 목데이터</p>
+        </Card>
+        <Card className="p-5">
+          <p className="caption">셀프낙찰 여력</p>
+          <p className="num mt-1.5 text-[24px] text-ink">약 14건</p>
+          <p className="mt-1 text-[12px] text-muted">평균 낙찰가 기준 환산 · 목데이터</p>
+        </Card>
+        <Card className="p-5">
+          <p className="caption">회수 전략 대기 물건</p>
+          <p className="num mt-1.5 text-[24px] text-grade-danger">6건</p>
+          <p className="mt-1 text-[12px] text-muted">모니터링 위험 분류분 — 사전 설계 대상</p>
+        </Card>
+      </div>
+
       <div className="print-hidden mb-5">
         <Segmented
           options={[
@@ -126,8 +159,9 @@ export function RecoveryPage() {
               />
             )}
             {single.isSuccess && singleReq && (
-              <div className="animate-fade-in">
+              <div className="animate-fade-in space-y-4">
                 <RecoveryReport req={singleReq} res={single.data} judgedAt={today()} />
+                <FeedbackLoopBanner />
               </div>
             )}
             {single.isIdle && (
@@ -245,8 +279,9 @@ export function RecoveryPage() {
               </div>
             )}
             {selected?.res && (
-              <div className="animate-fade-in">
+              <div className="animate-fade-in space-y-4">
                 <RecoveryReport req={selected.req} res={selected.res} judgedAt={today()} />
+                <FeedbackLoopBanner />
               </div>
             )}
           </div>

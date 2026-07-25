@@ -4,7 +4,7 @@
 
 @layer base {
   html {
-    font-family: "Pretendard", -apple-system, BlinkMacSystemFont,
+    font-family: "IBM Plex Sans KR", "Pretendard", -apple-system,
       "Apple SD Gothic Neo", "Noto Sans KR", sans-serif;
   }
   body {
@@ -15,18 +15,25 @@
 }
 
 @layer utilities {
+  /* 데이터 수치 — 측정값은 모노로 */
+  .num {
+    font-family: "IBM Plex Mono", "SF Mono", Menlo, monospace;
+    font-weight: 500;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.02em;
+  }
   .text-hero {
-    @apply text-[40px] font-normal text-slate;
-    letter-spacing: -0.9px;
-    line-height: 1.2;
+    @apply num text-[38px] text-ink;
+    line-height: 1.15;
   }
   .text-section {
-    @apply text-[24px] font-bold text-ink;
-    letter-spacing: -0.6px;
+    @apply text-[22px] font-bold text-ink;
+    letter-spacing: -0.02em;
     line-height: 1.35;
   }
-  .tabular-nums {
-    font-variant-numeric: tabular-nums;
+  .caption {
+    @apply text-[12px] font-semibold text-muted;
+    letter-spacing: 0.01em;
   }
 }
 

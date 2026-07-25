@@ -105,7 +105,7 @@ function StatCard({
     <Card className="p-5">
       <p className="text-[12px] font-bold text-muted">{label}</p>
       <p
-        className={`mt-1.5 text-[28px] font-normal tracking-tight tabular-nums ${
+        className={`num mt-1.5 text-[26px] ${
           danger && (value ?? 0) > 0 ? "text-grade-danger" : "text-slate"
         }`}
       >

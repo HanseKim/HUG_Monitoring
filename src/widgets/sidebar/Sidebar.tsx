@@ -2,59 +2,84 @@ import { NavLink } from "react-router-dom";
 import { TABS } from "@/shared/config/tabs";
 import { RegionSelect } from "@/features/region-select";
 
-// 활성 표시용 정적 클래스 (Tailwind purge 대응)
-const ACTIVE_BAR: Record<string, string> = {
-  tenant: "bg-tenant",
-  underwrite: "bg-underwrite",
-  monitor: "bg-monitor",
-  recovery: "bg-recovery",
-};
-const ACTIVE_ITEM: Record<string, string> = {
-  tenant: "bg-tenant-soft text-tenant",
-  underwrite: "bg-underwrite-soft text-underwrite",
-  monitor: "bg-monitor-soft text-monitor",
-  recovery: "bg-recovery-soft text-recovery",
-};
-
+/**
+ * 관제 레일 — 내비게이션이 곧 파이프라인.
+ * 스테이지 노드가 플로우 라인으로 이어지고, 마지막(회수)에서 첫(심사)으로
+ * 점선 환류 표시가 돌아온다.
+ */
 export function Sidebar() {
+  const stages = TABS.filter((t) => t.key !== "overview");
+  const overview = TABS.find((t) => t.key === "overview")!;
+
   return (
-    <aside className="print-hidden sticky top-0 flex h-screen w-[240px] shrink-0 flex-col border-r border-divider bg-surface">
+    <aside className="print-hidden sticky top-0 flex h-screen w-[248px] shrink-0 flex-col bg-rail">
       <div className="px-6 pb-5 pt-7">
-        <h1 className="text-[22px] font-bold tracking-tight text-ink">온전</h1>
-        <p className="mt-1 text-[12px] text-muted">
+        <h1 className="text-[21px] font-bold tracking-tight text-white">온전</h1>
+        <p className="mt-1 text-[11.5px] leading-relaxed text-rail-text">
           전세의 처음부터 끝까지, 온전하게
         </p>
       </div>
-      <div className="mx-6 border-t border-divider" />
-      <nav className="mt-4 flex-1 space-y-1 px-3">
-        {TABS.map((tab) => (
-          <NavLink
-            key={tab.key}
-            to={tab.path}
-            className={({ isActive }) =>
-              `relative flex items-center rounded-md px-4 py-2.5 text-[14px] transition-colors duration-fast ${
-                isActive
-                  ? `font-bold ${ACTIVE_ITEM[tab.key]}`
-                  : "font-normal text-faint hover:bg-canvas hover:text-label"
-              }`
-            }
-          >
-            {({ isActive }) => (
-              <>
-                {isActive && (
-                  <span
-                    className={`absolute left-0 top-1/2 h-5 w-[3px] -translate-y-1/2 rounded-r ${ACTIVE_BAR[tab.key]}`}
-                  />
-                )}
-                {tab.title}
-              </>
-            )}
-          </NavLink>
-        ))}
+
+      <nav className="flex-1 px-3">
+        {/* 플로우 개요 */}
+        <NavLink
+          to={overview.path}
+          end
+          className={({ isActive }) =>
+            `mb-4 flex items-center gap-2.5 rounded-lg px-3.5 py-2.5 text-[13.5px] transition-colors duration-fast ${
+              isActive
+                ? "bg-rail-soft font-bold text-white"
+                : "font-normal text-rail-text hover:bg-rail-soft/60 hover:text-white"
+            }`
+          }
+        >
+          <span className="num text-[10px] text-stage-data">LOOP</span>
+          {overview.title}
+        </NavLink>
+
+        <p className="caption mb-2 px-3.5 !text-rail-text/70">리스크 파이프라인</p>
+
+        {/* 스테이지 노드 + 플로우 라인 */}
+        <div className="relative">
+          <span
+            aria-hidden
+            className="absolute bottom-5 left-[22px] top-4 w-px bg-rail-line"
+          />
+          {stages.map((tab) => (
+            <NavLink
+              key={tab.key}
+              to={tab.path}
+              className={({ isActive }) =>
+                `relative flex items-center gap-3 rounded-lg py-2.5 pl-3.5 pr-3 text-[13.5px] transition-colors duration-fast ${
+                  isActive
+                    ? "bg-rail-soft font-bold text-white"
+                    : "font-normal text-rail-text hover:bg-rail-soft/60 hover:text-white"
+                }`
+              }
+            >
+              <span
+                className={`relative z-10 h-[9px] w-[9px] shrink-0 rounded-full ring-4 ring-rail ${tab.accent.dot}`}
+              />
+              <span className="flex-1">{tab.title}</span>
+              <span className="num text-[10px] text-rail-text/70">{tab.step}</span>
+            </NavLink>
+          ))}
+          {/* 환류: 회수 → 심사 */}
+          <div className="mt-1 flex items-center gap-2 pl-[17px]">
+            <span
+              aria-hidden
+              className="h-4 w-[11px] rounded-bl-md border-b border-l border-dashed border-stage-data/70"
+            />
+            <p className="text-[11px] leading-tight text-rail-text/80">
+              회수 결과가 <span className="text-stage-data">심사 데이터로 환류</span>
+            </p>
+          </div>
+        </div>
       </nav>
-      <div className="mx-6 border-t border-divider" />
+
+      <div className="mx-5 border-t border-rail-line" />
       <RegionSelect />
-      <footer className="border-t border-divider px-6 py-4 text-[12px] text-muted">
+      <footer className="border-t border-rail-line px-6 py-4 text-[11px] text-rail-text/70">
         DIVE 2026 · HUG × 아이엔
       </footer>
     </aside>

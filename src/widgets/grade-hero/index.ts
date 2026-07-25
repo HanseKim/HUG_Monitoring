@@ -1,1 +1,0 @@
-export { GradeHero } from "./GradeHero";

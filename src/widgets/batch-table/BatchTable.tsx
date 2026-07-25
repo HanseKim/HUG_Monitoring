@@ -29,7 +29,7 @@ export function BatchSummary({ rows }: { rows: BatchRow[] }) {
       {items.map((it) => (
         <Card key={it.label} className="p-5">
           <p className="text-[12px] font-bold text-muted">{it.label}</p>
-          <p className={`mt-1.5 text-[28px] font-normal tracking-tight tabular-nums ${it.cls ?? "text-slate"}`}>
+          <p className={`num mt-1.5 text-[26px] ${it.cls ?? "text-slate"}`}>
             {it.value}
           </p>
         </Card>

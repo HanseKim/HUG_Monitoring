@@ -1,3 +1,4 @@
+import { useState } from "react";
 import type { MonitorContract, Snapshot, TriggerType } from "@/entities/contract";
 import { Badge, Card, GradeBadge, type GradeName } from "@/shared/ui";
 import { formatPct } from "@/shared/lib/format";
@@ -51,6 +52,8 @@ function SnapshotBox({
 
 export function MonitorCard({ contract }: { contract: MonitorContract }) {
   const downgrade = isDowngrade(contract);
+  // 임차인 고지 — 등급 하락 시 세입자에게 즉시 안내 (데모: 로컬 상태)
+  const [noticeSent, setNoticeSent] = useState(false);
   return (
     <Card className={`p-6 ${downgrade ? "border-t-[3px] border-t-grade-danger" : ""}`}>
       <div className="mb-4 flex items-center justify-between">
@@ -89,6 +92,32 @@ export function MonitorCard({ contract }: { contract: MonitorContract }) {
         <p className="mt-1 text-[13px] text-body">
           권고: {contract.recommendations.join(" · ")}
         </p>
+      )}
+
+      {downgrade && (
+        <div className="mt-4 flex items-center gap-3 border-t border-divider pt-4">
+          {noticeSent ? (
+            <p className="flex items-center gap-2 text-[13px] font-bold text-stage-notice">
+              ✓ 임차인 고지 발송됨
+              <span className="font-normal text-muted">
+                — 세입자에게 위험등급 상승 안내가 전송되었습니다 (데모)
+              </span>
+            </p>
+          ) : (
+            <>
+              <button
+                type="button"
+                onClick={() => setNoticeSent(true)}
+                className="h-9 rounded-lg bg-stage-notice px-4 text-[13px] font-bold text-white transition-colors duration-fast hover:opacity-90"
+              >
+                임차인 고지 발송
+              </button>
+              <span className="text-[12px] text-muted">
+                임대인 위험등급 상승 — 세입자에게 즉시 안내
+              </span>
+            </>
+          )}
+        </div>
       )}
     </Card>
   );
