@@ -1,13 +1,13 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import type { MonitorContract, Snapshot, TriggerType } from "@/entities/contract";
-import { formatKRWShort, formatPct } from "@/shared/lib/format";
+import { formatPct } from "@/shared/lib/format";
 import { gradeByIdx, gradeDelta, gradeFromPd, isWatch } from "@/shared/config/grades";
 import { GradeTrack } from "./GradeTrack";
 
 const TRIGGER_LABEL: Record<TriggerType, string> = {
   T1_정기: "T1 정기",
-  T2_금리: "T2 금리",
+  T2_금리: "T2 시장지수",
   T3_등기변동: "T3 등기변동",
   T4_지역리스크: "T4 지역리스크",
 };
@@ -41,8 +41,6 @@ export function MonitorRow({ contract }: { contract: MonitorContract }) {
   const toSpec = gradeByIdx(toIdx);
   const pdDelta = a ? Math.round((a.riskPct - b.riskPct) * 10) / 10 : null;
   const rateDelta = Math.round((toSpec.actualRate - fromSpec.actualRate) * 10) / 10;
-  const strategyChanged =
-    contract.strategyAfter != null && contract.strategyAfter !== contract.strategyBefore;
 
   return (
     <li className="break-inside-avoid px-7 py-6 transition-colors duration-fast hover:bg-canvas/50">
@@ -71,7 +69,6 @@ export function MonitorRow({ contract }: { contract: MonitorContract }) {
             <p className="text-[15px] font-bold text-ink">{contract.address}</p>
             <span className="text-[12.5px] text-muted">
               {contract.houseType} · {contract.contractId}
-              {contract.deposit !== undefined && ` · 보증금 ${formatKRWShort(contract.deposit)}`}
             </span>
             {contract.trigger && (
               <span className="rounded-[3px] border border-divider px-1.5 py-px text-[11px] text-label">
@@ -80,7 +77,7 @@ export function MonitorRow({ contract }: { contract: MonitorContract }) {
             )}
             {delta?.crossedToSpeculative && (
               <span className="rounded-[3px] bg-grade-danger-soft px-1.5 py-px text-[11px] font-bold text-grade-danger">
-                투기등급 진입
+                워치리스트 편입
               </span>
             )}
           </div>
@@ -88,11 +85,6 @@ export function MonitorRow({ contract }: { contract: MonitorContract }) {
             <p className="mt-2 text-[13px] leading-relaxed text-body">{contract.reason}</p>
           ) : (
             <p className="mt-2 text-[13px] text-muted">최근 재평가 이후 변동 없음</p>
-          )}
-          {contract.recommendations.length > 0 && (
-            <p className="mt-1 text-[12.5px] text-muted">
-              권고 · {contract.recommendations.join(" · ")}
-            </p>
           )}
         </div>
 
@@ -159,15 +151,7 @@ export function MonitorRow({ contract }: { contract: MonitorContract }) {
             tone={rateDelta > 0 ? "bad" : "good"}
             note={`${toSpec.name} 집단 ${toSpec.testCount.toLocaleString("ko-KR")}건 기준`}
           />
-          <DeltaBlock
-            label="회수 전략"
-            beforeText={contract.strategyBefore ?? "—"}
-            afterText={contract.strategyAfter ?? contract.strategyBefore ?? "—"}
-            deltaText={strategyChanged ? "전략 변경" : "유지"}
-            tone={strategyChanged ? "bad" : "neutral"}
-            text
-            note={isWatch(toIdx) ? "워치리스트 편입 — 회수 경로 사전 설계 대상" : undefined}
-          />
+          <FeatureBlock before={b} after={a} watch={isWatch(toIdx)} />
         </div>
       )}
     </li>
@@ -212,6 +196,53 @@ function DeltaBlock({
         </span>
       </div>
       {note && <p className="mt-2 text-[11px] leading-relaxed text-muted">{note}</p>}
+    </div>
+  );
+}
+
+/** 등급을 움직인 모델 입력 피처 변화 */
+function FeatureBlock({
+  before,
+  after,
+  watch,
+}: {
+  before: Snapshot;
+  after: Snapshot;
+  watch: boolean;
+}) {
+  const rows = [
+    { label: "전세가율", from: before.jeonseRatio, to: after.jeonseRatio },
+    ...(before.seniorRatio !== undefined && after.seniorRatio !== undefined
+      ? [{ label: "선순위비율", from: before.seniorRatio, to: after.seniorRatio }]
+      : []),
+  ];
+  return (
+    <div className="bg-surface px-5 py-4">
+      <div className="flex items-baseline justify-between">
+        <p className="caption">모델 입력 변화</p>
+        {watch && (
+          <span className="text-[11.5px] font-bold text-grade-danger">워치리스트 편입</span>
+        )}
+      </div>
+      <div className="mt-2.5 space-y-1.5">
+        {rows.map((r) => {
+          const moved = r.to !== r.from;
+          return (
+            <div key={r.label} className="flex items-baseline gap-2">
+              <span className="w-[62px] shrink-0 text-[12px] text-muted">{r.label}</span>
+              <span className="num text-[14px] text-muted">{formatPct(r.from, 0)}</span>
+              <span className="text-[12px] text-faint" aria-hidden>
+                →
+              </span>
+              <span
+                className={`num text-[14px] ${moved ? "font-semibold text-grade-danger" : "text-ink"}`}
+              >
+                {formatPct(r.to, 0)}
+              </span>
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }

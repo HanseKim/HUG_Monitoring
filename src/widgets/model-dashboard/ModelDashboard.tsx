@@ -19,8 +19,7 @@ export function ModelDashboardSkeleton() {
     <div className="space-y-5">
       <section className="rounded-xl bg-rail p-7">
         <Skeleton className="h-4 w-40 !bg-rail-line" />
-        <Skeleton className="mt-4 h-10 w-2/3 !bg-rail-line" />
-        <Skeleton className="mt-6 h-24 w-full !bg-rail-line" />
+        <Skeleton className="mt-5 h-24 w-full !bg-rail-line" />
       </section>
       <Card className="p-6">
         <Skeleton className="h-4 w-48" />
@@ -32,13 +31,12 @@ export function ModelDashboardSkeleton() {
 
 /**
  * 모델 산출물 기반 리스크 현황.
- * 서사: "어느 등급 구간에서 사고가 실제로 발생했는가" — 워치리스트 집중도가 중심.
- * 예상손실·회수율 등 모델이 산출하지 않는 지표는 싣지 않는다.
+ * 싣는 값은 전부 모델이 실제로 내는 것: 등급 분포 · 실측 사고율 · 예측 PD · 성능 지표.
+ * 예상손실·회수율 등 모델이 산출하지 않는 지표는 넣지 않는다.
  */
 export function ModelDashboard({ data }: { data: Dash }) {
   const { watch, grades, performance, dataset } = data;
 
-  // 사고 건수 = 계약수 × 실측 사고율 (등급별)
   const withIncidents = grades.map((g) => ({
     ...g,
     incidents: Math.round((g.count * g.actualRate) / 100),
@@ -47,6 +45,11 @@ export function ModelDashboard({ data }: { data: Dash }) {
   }));
   const totalContracts = withIncidents.reduce((s, g) => s + g.count, 0);
   const totalIncidents = withIncidents.reduce((s, g) => s + g.incidents, 0);
+  const investCount = withIncidents
+    .filter((g) => !g.isWatch)
+    .reduce((s, g) => s + g.count, 0);
+  const watchCount = totalContracts - investCount;
+  const maxCount = Math.max(...withIncidents.map((g) => g.count));
   const maxRate = Math.max(...withIncidents.map((g) => g.actualRate));
 
   // 누적 포착 곡선 — 위험한 등급부터 훑었을 때 계약 x%로 사고 y%를 잡는가
@@ -66,69 +69,87 @@ export function ModelDashboard({ data }: { data: Dash }) {
 
   return (
     <div className="space-y-5">
-      {/* 헤드라인 — 위험 집중도 */}
+      {/* 등급별 계약 분포 (다크) + 성능 지표 */}
       <section className="rounded-xl bg-rail px-8 py-7 text-white">
         <div className="flex items-baseline justify-between">
-          <p className="caption !text-rail-text">
-            모델1 위험등급 · 2024 시험셋 {comma(dataset.testCount)}건 실측
-          </p>
-          <p className="text-[11px] text-rail-text/60">
-            학습 {comma(dataset.total)}건 · 전체 사고율 {formatPct(dataset.incidentRate)}
+          <div>
+            <p className="caption !text-rail-text">등급별 계약 분포</p>
+            <p className="mt-1 text-[12px] text-rail-text/70">
+              2024 시험셋 {comma(dataset.testCount)}건 · 사고 {comma(totalIncidents)}건
+            </p>
+          </div>
+          <p className="num text-[11.5px] text-rail-text/80">
+            투자등급 {comma(investCount)}건 ({formatPct((investCount / totalContracts) * 100, 0)})
+            <span className="mx-1.5 text-rail-line">|</span>
+            <span className="text-grade-caution">
+              워치리스트 {comma(watchCount)}건 ({formatPct((watchCount / totalContracts) * 100, 0)})
+            </span>
           </p>
         </div>
 
-        <h3 className="mt-3 text-[25px] font-bold leading-snug tracking-tight">
-          하위 <span className="num text-grade-caution">{formatPct(watch.contractShare)}</span>의
-          워치리스트에서
-          <br />
-          전체 사고의{" "}
-          <span className="num text-grade-danger">{formatPct(watch.captureRate)}</span>가
-          발생했습니다
-        </h3>
-
-        {/* 계약 비중 vs 사고 비중 비교 막대 */}
-        <div className="mt-6 space-y-3">
-          <ShareBar
-            label={`워치리스트 (${watch.thresholdGrade} 이하) 계약 비중`}
-            pct={watch.contractShare}
-            barCls="bg-rail-text/60"
-          />
-          <ShareBar
-            label="그 안에서 발생한 사고 비중"
-            pct={watch.captureRate}
-            barCls="bg-grade-danger"
-          />
+        <div className="mt-6 flex items-end gap-[5px]">
+          {withIncidents.map((g) => (
+            <div key={g.idx} className="flex-1">
+              <p className="num mb-1.5 text-center text-[10px] text-rail-text/70">
+                {g.count === 0 ? "—" : comma(g.count)}
+              </p>
+              <div
+                className={`w-full rounded-t-[2px] ${g.isWatch ? ZONE_BG[g.zone] : "bg-rail-text/45"}`}
+                style={{ height: `${Math.max(3, (g.count / maxCount) * 74)}px` }}
+                title={`${g.name} ${comma(g.count)}건 · 실측 사고율 ${g.actualRate}%`}
+              />
+              <p
+                className={`num mt-2 text-center text-[10.5px] ${
+                  g.isWatch ? "font-semibold text-grade-caution" : "text-rail-text"
+                }`}
+              >
+                {g.name}
+              </p>
+            </div>
+          ))}
+        </div>
+        {/* 워치 경계 표시 */}
+        <div className="mt-2 flex text-[10px] text-rail-text/60">
+          <span style={{ flex: WATCH_START }} className="border-t border-rail-line pt-1.5">
+            투자등급 (BBB- 이상)
+          </span>
+          <span
+            style={{ flex: grades.length - WATCH_START }}
+            className="border-t border-grade-caution/50 pt-1.5 text-grade-caution/80"
+          >
+            워치리스트 ({watch.thresholdGrade} 이하)
+          </span>
         </div>
 
         <div className="mt-6 grid grid-cols-4 border-t border-rail-line pt-5">
           <Metric
             label="워치리스트 사고율"
             value={formatPct(watch.watchRate)}
-            sub={`비워치 ${formatPct(watch.nonWatchRate)}`}
+            sub={`비워치 ${formatPct(watch.nonWatchRate)} · ${watch.lift}배`}
             tone="danger"
-          />
-          <Metric
-            label="위험 배수"
-            value={`${watch.lift}배`}
-            sub="워치 ÷ 비워치 사고율"
-            divider
           />
           <Metric
             label="사고 포착률"
             value={formatPct(watch.captureRate)}
-            sub={`계약 ${formatPct(watch.contractShare)}만 열람`}
+            sub={`계약 ${formatPct(watch.contractShare)} 열람 기준`}
             divider
           />
           <Metric
             label="변별력 AUC"
             value={performance.auc.toFixed(4)}
-            sub={`Brier ${performance.brier.toFixed(5)} · 단조성 ${performance.gradeMonotonicity.toFixed(4)}`}
+            sub={`AP ${performance.ap.toFixed(3)} · Brier ${performance.brier.toFixed(5)}`}
+            divider
+          />
+          <Metric
+            label="등급 단조성"
+            value={performance.gradeMonotonicity.toFixed(4)}
+            sub={`학습 ${comma(dataset.total)}건 · 사고율 ${formatPct(dataset.incidentRate)}`}
             divider
           />
         </div>
       </section>
 
-      {/* 등급별 실측 사고율 */}
+      {/* 등급별 실제 사고율 */}
       <Card className="p-7">
         <div className="flex items-baseline justify-between">
           <div>
@@ -137,23 +158,19 @@ export function ModelDashboard({ data }: { data: Dash }) {
               막대는 2024년 실제 사고율, 점은 모델 예측 PD. 두 값이 붙어 있을수록 등급이 신뢰됩니다.
             </p>
           </div>
-          <p className="caption">
-            AAA → C · 워치 경계 {watch.thresholdGrade}
-          </p>
+          <p className="caption">워치 경계 {watch.thresholdGrade}</p>
         </div>
 
         <div className="mt-6 flex items-end gap-1.5">
           {withIncidents.map((g) => (
-            <div key={g.idx} className="group relative flex-1">
+            <div key={g.idx} className="flex-1">
               <div className="relative h-[150px]">
-                {/* 실측 사고율 막대 */}
                 <div
                   className={`absolute bottom-0 w-full rounded-t-[2px] ${ZONE_BG[g.zone]} ${
                     g.isWatch ? "" : "opacity-45"
                   }`}
                   style={{ height: `${(g.actualRate / maxRate) * 100}%` }}
                 />
-                {/* 예측 PD 점 */}
                 <span
                   className="absolute left-1/2 h-[7px] w-[7px] -translate-x-1/2 translate-y-1/2 rounded-full border-2 border-surface bg-ink"
                   style={{ bottom: `${(g.predictedPd / maxRate) * 100}%` }}
@@ -174,7 +191,6 @@ export function ModelDashboard({ data }: { data: Dash }) {
               >
                 {g.name}
               </p>
-              <p className="num mt-0.5 text-center text-[9.5px] text-faint">{comma(g.count)}</p>
             </div>
           ))}
         </div>
@@ -186,9 +202,7 @@ export function ModelDashboard({ data }: { data: Dash }) {
           <span className="flex items-center gap-1.5">
             <span className="inline-block h-2 w-2 rounded-full bg-ink" /> 모델 예측 PD
           </span>
-          <span className="ml-auto">
-            워치 경계({watch.thresholdGrade}) 아래부터 진하게 표시 · 하단 숫자는 계약 건수
-          </span>
+          <span className="ml-auto">워치 경계 아래부터 진하게 표시</span>
         </div>
       </Card>
 
@@ -293,20 +307,6 @@ export function ModelDashboard({ data }: { data: Dash }) {
           </div>
         </Card>
       </div>
-    </div>
-  );
-}
-
-function ShareBar({ label, pct, barCls }: { label: string; pct: number; barCls: string }) {
-  return (
-    <div className="flex items-center gap-4">
-      <span className="w-[220px] shrink-0 text-[12.5px] text-rail-text">{label}</span>
-      <div className="h-[22px] flex-1 overflow-hidden rounded-[3px] bg-rail-soft">
-        <div className={`h-full ${barCls}`} style={{ width: `${pct}%` }} />
-      </div>
-      <span className="num w-14 shrink-0 text-right text-[15px] font-semibold">
-        {formatPct(pct)}
-      </span>
     </div>
   );
 }
