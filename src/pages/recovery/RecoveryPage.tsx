@@ -1,4 +1,7 @@
 import { useEffect, useRef, useState } from "react";
+import { useLocation } from "react-router-dom";
+import type { MonitorContract } from "@/entities/contract";
+import { useRegionStore } from "@/shared/model/region";
 import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip } from "recharts";
 import { analyzeRecovery, useRecoveryAnalyze } from "@/entities/recovery-case";
 import type { RecoveryPath, RecoveryReq, RecoveryRes } from "@/entities/recovery-case";
@@ -88,21 +91,76 @@ const DEMO_REQ: RecoveryReq = {
   opposableTenant: "무",
 };
 
+/**
+ * 모니터링 강등 건별 연계 시나리오 (추정 목데이터) — 세 건이 서로 다른 회수 경로로
+ * 갈리도록 물건 상태를 다르게 부여한다.
+ * 화곡동(0042): 상태 양호·상계 가능 → 셀프낙찰
+ * 주안동(0117): 대항력 임차인 점유 → 배당대기
+ * 부천(0233): 5회 유찰·점유·보수필요 → 협의매입
+ */
+const LINK_OVERRIDES: Record<string, Partial<RecoveryReq>> = {
+  "C-2026-0117": { opposableTenant: "유", evictionStatus: "점유중" },
+  "C-2026-0233": {
+    appraisalPrice: 240_000_000,
+    minBidPrice: 190_000_000,
+    subrogationAmount: 194_000_000,
+    failedBidCount: 5,
+    evictionStatus: "점유중",
+    defectStatus: "보수필요",
+  },
+};
+
+/** 모니터링 강등 건 → 회수 전략 요청으로 변환. 금액 항목은 추정 목데이터. */
+function contractToReq(c: MonitorContract): RecoveryReq {
+  const appraisalPrice = 300_000_000;
+  const ratio = c.after?.jeonseRatio ?? c.before.jeonseRatio;
+  const subrogationAmount =
+    Math.round((appraisalPrice * ratio) / 100 / 1_000_000) * 1_000_000;
+  return {
+    caseNo: `연계-${c.contractId}`,
+    address: c.address,
+    houseType: c.houseType,
+    areaM2: 45.0,
+    subrogationAmount,
+    seniorAmount: c.trigger === "T3_등기변동" ? 120_000_000 : 0, // 감지된 근저당 반영
+    appraisalPrice,
+    minBidPrice: Math.round(appraisalPrice * 0.7),
+    failedBidCount: 0,
+    evictionStatus: "양호",
+    defectStatus: "양호",
+    opposableTenant: "무",
+    ...LINK_OVERRIDES[c.contractId],
+  };
+}
+
 export function RecoveryPage() {
   const accent = getTab("recovery").accent;
   const [mode, setMode] = useState<"single" | "csv">("single");
   const single = useRecoveryAnalyze();
   const [singleReq, setSingleReq] = useState<RecoveryReq | null>(null);
 
-  // 진입 시 데모 레포트 자동 표시 — 입력을 바꿔 판정하면 실제(목) API로 재계산.
+  // 모니터링에서 연계 진입한 강등 건 (router state)
+  const location = useLocation();
+  const fromContract = (location.state as { fromContract?: MonitorContract } | null)
+    ?.fromContract;
+  const initialReq = fromContract ? contractToReq(fromContract) : DEMO_REQ;
+  const addrTokens = initialReq.address.split(" ");
+  const initialDetail = fromContract ? addrTokens.slice(2).join(" ") : DEMO_DETAIL;
+  const { setSido, setSigungu } = useRegionStore();
+
+  // 진입 시 자동 판정 — 연계 건이 있으면 그 건으로, 없으면 데모 목데이터로.
   // 부팅 직후 fetch는 MSW 워커 활성화 레이스로 응답이 유실될 수 있어 짧게 지연.
   const demoFired = useRef(false);
   useEffect(() => {
     const t = setTimeout(() => {
       if (demoFired.current) return;
       demoFired.current = true;
-      setSingleReq(DEMO_REQ);
-      single.mutate(DEMO_REQ);
+      if (fromContract) {
+        setSido(addrTokens[0]);
+        setSigungu(addrTokens[1]);
+      }
+      setSingleReq(initialReq);
+      single.mutate(initialReq);
     }, 400);
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -174,8 +232,19 @@ export function RecoveryPage() {
 
       {mode === "single" ? (
         <>
+          {fromContract && (
+            <div className="print-hidden mb-4 flex items-center gap-3 rounded-xl border border-stage-monitor/40 bg-stage-monitor-soft px-5 py-3">
+              <span className="num text-[12px] font-semibold text-stage-monitor">02→04</span>
+              <p className="text-[13px] text-body">
+                상시 모니터링 강등 건 <b className="text-ink">{fromContract.contractId}</b>
+                {" "}연계 — 해당 물건의 회수 경로를 자동 판정했습니다.{" "}
+                <span className="text-muted">금액 항목은 추정 목데이터로 채워져 있으니 확인 후 수정하세요.</span>
+              </p>
+            </div>
+          )}
           <RecoveryForm
-            initial={{ ...DEMO_REQ, detailAddress: DEMO_DETAIL }}
+            key={fromContract?.contractId ?? "demo"}
+            initial={{ ...initialReq, detailAddress: initialDetail }}
             loading={single.isPending}
             onSubmit={(req) => {
               setSingleReq(req);

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import type { MonitorContract, Snapshot, TriggerType } from "@/entities/contract";
 import { formatPct } from "@/shared/lib/format";
 import { gradeByIdx, gradeDelta, gradeFromPd } from "@/shared/config/grades";
@@ -24,12 +25,16 @@ export const isDowngrade = (c: MonitorContract) =>
 
 /** 워크리스트 행 — 강등 폭이 곧 처리 우선순위 */
 export function MonitorRow({ contract }: { contract: MonitorContract }) {
+  const navigate = useNavigate();
   const delta = contractDelta(contract);
   const downgrade = delta?.direction === "강등";
   const [noticeSent, setNoticeSent] = useState(false);
 
   const fromIdx = snapshotIdx(contract.before);
   const toIdx = contract.after ? snapshotIdx(contract.after) : fromIdx;
+  // 사기·사고 가능 구간(위험 B 이하 또는 투기등급 진입) 강등 → 회수 전략 사전 설계 대상
+  const recoveryTarget =
+    downgrade && (toIdx >= 8 || delta!.crossedToSpeculative);
 
   return (
     <li className="px-6 py-5 transition-colors duration-fast hover:bg-canvas/70">
@@ -104,8 +109,8 @@ export function MonitorRow({ contract }: { contract: MonitorContract }) {
           </div>
         </div>
 
-        {/* 임차인 고지 */}
-        <div className="w-[104px] shrink-0 pt-0.5 text-right">
+        {/* 액션 — 고지 · 회수 전략 연계 */}
+        <div className="flex w-[110px] shrink-0 flex-col items-end gap-2 pt-0.5">
           {downgrade &&
             (noticeSent ? (
               <p className="text-[12px] font-bold text-stage-notice">✓ 고지됨</p>
@@ -113,11 +118,20 @@ export function MonitorRow({ contract }: { contract: MonitorContract }) {
               <button
                 type="button"
                 onClick={() => setNoticeSent(true)}
-                className="rounded-md border border-stage-notice px-3 py-1.5 text-[12px] font-bold text-stage-notice transition-colors duration-fast hover:bg-stage-notice hover:text-white"
+                className="w-full rounded-md border border-stage-notice px-3 py-1.5 text-[12px] font-bold text-stage-notice transition-colors duration-fast hover:bg-stage-notice hover:text-white"
               >
                 임차인 고지
               </button>
             ))}
+          {recoveryTarget && (
+            <button
+              type="button"
+              onClick={() => navigate("/recovery", { state: { fromContract: contract } })}
+              className="w-full rounded-md bg-stage-safe px-3 py-1.5 text-[12px] font-bold text-white transition-colors duration-fast hover:opacity-90"
+            >
+              회수 전략 →
+            </button>
+          )}
         </div>
       </div>
     </li>
