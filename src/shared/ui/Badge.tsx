@@ -51,7 +51,7 @@ export function Grade13Badge({
       {showBand && (
         <span
           className={`rounded px-1.5 py-0.5 text-[11px] font-bold ${
-            g.band === "투기등급" ? "bg-grade-danger-soft text-grade-danger" : "bg-canvas text-label"
+            g.band === "워치리스트" ? "bg-grade-danger-soft text-grade-danger" : "bg-canvas text-label"
           }`}
         >
           {g.band}

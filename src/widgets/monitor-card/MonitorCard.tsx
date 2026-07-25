@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import type { MonitorContract, Snapshot, TriggerType } from "@/entities/contract";
 import { formatKRWShort, formatPct } from "@/shared/lib/format";
-import { gradeByIdx, gradeDelta, gradeFromPd } from "@/shared/config/grades";
+import { gradeByIdx, gradeDelta, gradeFromPd, isWatch } from "@/shared/config/grades";
 import { GradeTrack } from "./GradeTrack";
 
 const TRIGGER_LABEL: Record<TriggerType, string> = {
@@ -33,15 +33,14 @@ export function MonitorRow({ contract }: { contract: MonitorContract }) {
   const fromIdx = snapshotIdx(contract.before);
   const toIdx = contract.after ? snapshotIdx(contract.after) : fromIdx;
   // 사기·사고 가능 구간(위험 B 이하 또는 투기등급 진입) 강등 → 회수 전략 사전 설계 대상
-  const recoveryTarget = downgrade && (toIdx >= 8 || delta!.crossedToSpeculative);
+  const recoveryTarget = downgrade && (toIdx >= 13 || delta!.crossedToSpeculative);
 
   const b = contract.before;
   const a = contract.after;
-  const elDelta = a?.el !== undefined && b.el !== undefined ? a.el - b.el : null;
-  const rrDelta =
-    a?.recoveryRate !== undefined && b.recoveryRate !== undefined
-      ? Math.round((a.recoveryRate - b.recoveryRate) * 10) / 10
-      : null;
+  const fromSpec = gradeByIdx(fromIdx);
+  const toSpec = gradeByIdx(toIdx);
+  const pdDelta = a ? Math.round((a.riskPct - b.riskPct) * 10) / 10 : null;
+  const rateDelta = Math.round((toSpec.actualRate - fromSpec.actualRate) * 10) / 10;
   const strategyChanged =
     contract.strategyAfter != null && contract.strategyAfter !== contract.strategyBefore;
 
@@ -140,26 +139,25 @@ export function MonitorRow({ contract }: { contract: MonitorContract }) {
         </div>
       </div>
 
-      {/* 2단 — 재산정이 만든 경제적 변화 */}
+      {/* 2단 — 재산정이 만든 변화 (전부 모델 산출물) */}
       {a && (
         <div className="mt-5 grid grid-cols-3 gap-px overflow-hidden rounded-lg bg-divider">
           <DeltaBlock
-            label="예상손실 EL"
-            beforeText={b.el !== undefined ? formatKRWShort(b.el) : "—"}
-            afterText={a.el !== undefined ? formatKRWShort(a.el) : "—"}
+            label="모델 예측 PD"
+            beforeText={formatPct(b.riskPct)}
+            afterText={formatPct(a.riskPct)}
             deltaText={
-              elDelta === null
-                ? null
-                : `${elDelta >= 0 ? "+" : "−"}${formatKRWShort(Math.abs(elDelta))}`
+              pdDelta === null ? null : `${pdDelta >= 0 ? "+" : "−"}${Math.abs(pdDelta)}%p`
             }
-            tone={elDelta !== null && elDelta > 0 ? "bad" : "good"}
+            tone={pdDelta !== null && pdDelta > 0 ? "bad" : "good"}
           />
           <DeltaBlock
-            label="예상 회수율"
-            beforeText={b.recoveryRate !== undefined ? formatPct(b.recoveryRate) : "—"}
-            afterText={a.recoveryRate !== undefined ? formatPct(a.recoveryRate) : "—"}
-            deltaText={rrDelta === null ? null : `${rrDelta >= 0 ? "+" : "−"}${Math.abs(rrDelta)}%p`}
-            tone={rrDelta !== null && rrDelta < 0 ? "bad" : "good"}
+            label="동일등급 실측 사고율"
+            beforeText={formatPct(fromSpec.actualRate)}
+            afterText={formatPct(toSpec.actualRate)}
+            deltaText={`${rateDelta >= 0 ? "+" : "−"}${Math.abs(rateDelta)}%p`}
+            tone={rateDelta > 0 ? "bad" : "good"}
+            note={`${toSpec.name} 집단 ${toSpec.testCount.toLocaleString("ko-KR")}건 기준`}
           />
           <DeltaBlock
             label="회수 전략"
@@ -168,6 +166,7 @@ export function MonitorRow({ contract }: { contract: MonitorContract }) {
             deltaText={strategyChanged ? "전략 변경" : "유지"}
             tone={strategyChanged ? "bad" : "neutral"}
             text
+            note={isWatch(toIdx) ? "워치리스트 편입 — 회수 경로 사전 설계 대상" : undefined}
           />
         </div>
       )}
@@ -182,6 +181,7 @@ function DeltaBlock({
   deltaText,
   tone,
   text,
+  note,
 }: {
   label: string;
   beforeText: string;
@@ -189,6 +189,7 @@ function DeltaBlock({
   deltaText: string | null;
   tone: "good" | "bad" | "neutral";
   text?: boolean;
+  note?: string;
 }) {
   const toneCls =
     tone === "bad" ? "text-grade-danger" : tone === "good" ? "text-grade-safe" : "text-muted";
@@ -210,6 +211,7 @@ function DeltaBlock({
           {afterText}
         </span>
       </div>
+      {note && <p className="mt-2 text-[11px] leading-relaxed text-muted">{note}</p>}
     </div>
   );
 }

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
-import { useMonitorContracts, usePortfolioSummary } from "@/entities/contract";
-import { PortfolioSummary, PortfolioSummarySkeleton } from "@/widgets/portfolio-summary";
+import { useMonitorContracts, useModelDashboard } from "@/entities/contract";
+import { ModelDashboard, ModelDashboardSkeleton } from "@/widgets/model-dashboard";
 import { PageHeader } from "@/widgets/page-header";
 import { MonitorRow, isDowngrade, contractDelta } from "@/widgets/monitor-card";
 import { Card, EmptyState, ErrorState, Skeleton } from "@/shared/ui";
@@ -32,7 +32,7 @@ export function MonitorPage() {
   // 기본은 변동 있는 계약만, 검색어가 있으면 무변동 계약도 포함해 검색
   const list = useMonitorContracts(q ? { q } : { changed: true });
   const all = useMonitorContracts({}); // 요약 스탯용 전체
-  const portfolio = usePortfolioSummary();
+  const dash = useModelDashboard();
 
   // 기본 정렬: 강등 폭 내림차순 — 강등 폭이 곧 처리 우선순위
   const filtered = (list.data ?? [])
@@ -47,7 +47,7 @@ export function MonitorPage() {
     { label: "관리중 계약", value: all.data?.length },
     { label: "이번달 등급하락", value: all.data?.filter(isDowngrade).length, danger: true },
     {
-      label: "그중 투기등급 진입",
+      label: "그중 워치리스트 편입",
       value: all.data?.filter((c) => contractDelta(c)?.crossedToSpeculative).length,
       danger: true,
     },
@@ -68,7 +68,7 @@ export function MonitorPage() {
           상시 모니터링 리스크 리포트
         </h1>
         <p className="mt-1 text-[11.5px] text-body">
-          기준일 {portfolio.data?.asOf ?? "—"} · 강등 폭 내림차순 · 수치는 데모용 목데이터
+          기준일 {dash.data?.asOf ?? "—"} · 강등 폭 내림차순 · 수치는 데모용 목데이터
         </p>
       </div>
 
@@ -83,13 +83,13 @@ export function MonitorPage() {
         </button>
       </div>
 
-      {/* 포트폴리오 전체 요약 */}
-      <div className="mb-6">
-        {portfolio.isPending && <PortfolioSummarySkeleton />}
-        {portfolio.isSuccess && <PortfolioSummary data={portfolio.data} />}
-        {portfolio.isError && (
+      {/* 모델 산출물 기반 리스크 현황 */}
+      <div className="mb-7">
+        {dash.isPending && <ModelDashboardSkeleton />}
+        {dash.isSuccess && <ModelDashboard data={dash.data} />}
+        {dash.isError && (
           <p className="rounded-xl border border-divider bg-surface px-5 py-4 text-[13px] text-ink">
-            포트폴리오 요약을 불러오지 못했습니다. 아래 계약 목록은 정상 표시됩니다.
+            모델 현황을 불러오지 못했습니다. 아래 계약 목록은 정상 표시됩니다.
           </p>
         )}
       </div>

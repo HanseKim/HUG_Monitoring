@@ -8,9 +8,6 @@ export type Snapshot = {
   // 13등급 개편 추가 필드 (하위 호환 — 없으면 riskPct로 환산)
   grade13?: string;
   gradeIdx?: number;
-  // 재산정 경제성 지표 (모니터링 확장) — 없으면 프론트 미표시
-  el?: number; // 예상손실액(원) = PD × LGD × 보증금
-  recoveryRate?: number; // 예상 회수율(%)
 };
 
 export type TriggerType = "T1_정기" | "T2_금리" | "T3_등기변동" | "T4_지역리스크";
@@ -30,24 +27,40 @@ export type MonitorContract = {
   strategyAfter?: string | null; // 재산정 후 회수 전략 (변경 없으면 동일 값)
 };
 
-/** GET /api/monitor/portfolio — 포트폴리오 전체 리스크 요약 */
-export type PortfolioSummary = {
+/** GET /api/monitor/portfolio — 모델 산출물 기반 리스크 현황 */
+export type ModelDashboard = {
   asOf: string;
-  contractCount: number;
-  totalExposure: number; // 총 보증금 익스포저(원)
-  el: {
-    ytd: number; // 올해 누적 예상손실(원)
-    month: number; // 이번달 예상손실(원)
-    momDelta: number; // 전월 대비 증감(원)
-    realizedYtd: number; // 올해 실현손실(대위변제 지급액)
+  /** 학습 데이터셋 요약 */
+  dataset: {
+    total: number;
+    incidents: number;
+    incidentRate: number; // 전체 사고율(%)
+    testFrom: string;
+    testTo: string;
+    testCount: number;
   };
-  recovery: {
-    actualYtd: number; // 올해 실현 회수율(%)
-    predicted: number; // 모델 예측 회수율(%)
-    momDelta: number; // 전월 대비 증감(%p)
-    avgMonths: number; // 평균 회수 소요기간(개월)
+  /** 시험셋 성능 지표 */
+  performance: {
+    auc: number;
+    ap: number;
+    brier: number;
+    gradeMonotonicity: number; // Spearman
   };
-  paths: { path: string; count: number; recoveredAmount: number }[];
-  grades: { idx: number; name: string; count: number; exposure: number }[];
-  migration: { downgraded: number; upgraded: number; toSpeculative: number };
+  /** 워치리스트(BB+ 이하) 집중도 — 대시보드의 핵심 서사 */
+  watch: {
+    thresholdGrade: string;
+    contractShare: number; // 계약 비중(%)
+    captureRate: number; // 사고 포착률(%)
+    watchRate: number; // 워치 사고율(%)
+    nonWatchRate: number; // 비워치 사고율(%)
+    lift: number; // 배수
+  };
+  /** 등급별 분포 + 실측 사고율 */
+  grades: {
+    idx: number;
+    name: string;
+    count: number;
+    actualRate: number; // 실제 사고율(%)
+    predictedPd: number; // 예측 PD(%)
+  }[];
 };

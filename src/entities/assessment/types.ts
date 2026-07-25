@@ -65,6 +65,6 @@ export type UnderwriteRes = {
   // 모델1 13등급 개편(2026-07)으로 추가 — 기존 필드는 하위 호환 유지
   grade13?: string; // "BB+" 등 13등급 문자열
   gradeIdx?: number; // 0(AAA)~12(D) — 정렬·비교는 반드시 이 값
-  gradeBand?: "투자등급" | "투기등급";
+  gradeBand?: "투자등급" | "워치리스트";
   gradeReason?: string; // 사람이 읽는 등급 산정 사유
 };

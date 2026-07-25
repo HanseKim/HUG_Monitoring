@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { api } from "@/shared/api/client";
-import type { MonitorContract, PortfolioSummary } from "./types";
+import type { MonitorContract, ModelDashboard } from "./types";
 
 export const useMonitorContracts = (params: { changed?: boolean; q?: string }) => {
   const search = new URLSearchParams();
@@ -14,8 +14,8 @@ export const useMonitorContracts = (params: { changed?: boolean; q?: string }) =
   });
 };
 
-export const usePortfolioSummary = () =>
+export const useModelDashboard = () =>
   useQuery({
     queryKey: ["monitor-portfolio"],
-    queryFn: () => api.get<PortfolioSummary>("/api/monitor/portfolio"),
+    queryFn: () => api.get<ModelDashboard>("/api/monitor/portfolio"),
   });

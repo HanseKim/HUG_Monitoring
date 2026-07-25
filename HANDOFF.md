@@ -18,12 +18,14 @@ HUG 내부 전세보증 리스크 관제 콘솔. Vite+React18+TS+Tailwind, FSD, 
 - **사용자가 두 번 "AI틱하다"고 반려함.** 금지: 4분할 큰 숫자 카드 나열, 카드 안 카드, 큰 채움 버튼 남발, 통짜 컬러 배너. 대신 헤어라인 구획·워크리스트 행·아웃라인 버튼.
 - 디자인 스킬 4종이 `.agents/skills`에 설치돼 있음(frontend-design, impeccable, design-taste-frontend, brandkit). UI 작업 전 로드 권장. **git 추적 제외됨**(용량) — 없으면 재설치.
 
-## 모델1 13등급 (2026-07 개편 반영 완료)
-- 소스: [src/shared/config/grades.ts](src/shared/config/grades.ts) — GRADE13 테이블, `gradeFromPd`, `gradeByIdx`, `gradeDelta`.
-- **정렬·비교·델타는 반드시 `gradeIdx`(숫자)로.** 문자열 파싱 금지. 경계값(BBB=5%, BB=10%) 임의 조정 금지.
-- 하드룰: HR0(전세가율>100%) → 강제 D / HR1(선순위) → 1등급 강등 / HR3 → 등급 미반영.
-- API 신필드: `grade13`, `gradeIdx`, `gradeBand`, `gradeReason`(사람이 읽는 문장, 화면에 그대로 노출).
-- 기존 3단계 필드는 하위 호환으로 계속 옴.
+## 모델1 위험등급 — 19등급 (AAA~C) ★현행
+- 소스: [src/shared/config/grades.ts](src/shared/config/grades.ts) — `GRADE_SCALE`(19개), `gradeFromPd`, `gradeByIdx`, `gradeDelta`, `isWatch`, `WATCH_START=10`.
+- 등급 순서: AAA·AA+·AA0·AA-·A+·A0·A-·BBB+·BBB0·BBB- (투자등급, idx 0~9) / **BB+·BB0·BB-·B+·B0·B-·CCC·CC·C (워치리스트, idx 10~18)**.
+- 각 등급에 **2024 시험셋 실측치**(testCount, actualRate, predictedPd)가 상수로 박혀 있음 — 대시보드가 이걸 그대로 씀.
+- `maxPd`는 등급별 평균 PD에서 유도한 **근사 경계**. 정본 경계표는 모델 저장소 `grade_scale.py` 기준으로 교체할 것.
+- 정렬·비교·델타는 반드시 `idx`(숫자)로. 문자열 파싱 금지.
+- 이전 13등급(AAA~D) 체계는 폐기됨. `GRADE13`은 하위 호환 별칭으로만 남아 있음.
+- 색 매핑: legacy 3구간(안심 idx 0~6 / 주의 7~12 / 위험 13~18) — 실측 사고율 기준으로 나눔.
 
 ## 회수 경로 네이밍
 API `path` 값은 백엔드 합의 계약이라 `"셀프낙찰"` 유지. **화면 표시는 `PATH_LABEL`/`pathLabel()`로 "든든전세"로 매핑** ([src/entities/recovery-case/types.ts](src/entities/recovery-case/types.ts)). 새로 path를 렌더할 때 반드시 `pathLabel()` 경유.
@@ -36,19 +38,22 @@ API `path` 값은 백엔드 합의 계약이라 `"셀프낙찰"` 유지. **화�
 - 연계 시나리오가 경로별로 갈리도록 `LINK_OVERRIDES`([src/pages/recovery/RecoveryPage.tsx](src/pages/recovery/RecoveryPage.tsx)):
   세종 0007 → 든든전세 / 화곡동 0042 → 든든전세 / 주안동 0117 → 배당대기(대항력 유) / 부천 0233 → 협의매입(5회 유찰).
 
-## 모니터링 대표 화면 — 포트폴리오 요약 + 경제성 지표 + PDF (완료)
-사용자 요구: "HUG가 원하는 건 예상손실액이 얼마고, 회수율이 어떻게 바뀌고, 회수전략이 어떻게 바뀌었는지. 맨 위에 전체 데이터 기반 총 예상손실액·회수율·든든전세 몇 채·등급별 요약을 다 담고, PDF로 뽑을 수 있게."
+## 모니터링 대표 화면 — 모델 산출물 전용 대시보드 (현행)
+**중요 원칙**: 사용자가 "예상손실·회수율·회수소요는 모델로 구할 수 없으니 다 없애고 모델 산출물로만 만들라"고 지시함.
+→ EL / 회수율 / 회수소요 / 회수액 / 경로별 회수액은 **다시 넣지 말 것**. LGD는 별도 경매 테이블 집계라 모델 출력이 아님.
 
-구현된 것:
-- `GET /api/monitor/portfolio` 목 핸들러 + `PortfolioSummary` 타입 + `usePortfolioSummary()`.
-  목 수치: 계약 12,480건 / 익스포저 3조 1,815억 / 올해 EL 1,284억(실현 946억) / 이번달 EL 218억(전월비 +37억) /
-  실현 회수율 74.2%(전월비 +2.4%p, 예측 75.4%) / 평균 8.4개월 /
-  등급 분포 투자 9,111건(73%)·투기 3,369건(27%), AAA 749 … D 36 (통지문 §6 실측 분포 준수) /
-  경로: 든든전세 142채·배당대기 386·협의매입 47·캠코공매 18·재산추적 9.
-- [src/widgets/portfolio-summary/](src/widgets/portfolio-summary/) — 다크 패널: 핵심 수치 4 → 13등급 분포 막대 → 경로 분포.
-- 행(`MonitorRow`) 2단 구조: 1단 식별·등급 트랙·액션 / 2단 3분할 델타 블록(예상손실 EL · 예상 회수율 · 회수 전략, 전→후 + 증감).
-  스냅샷 경제성은 목에서 계산: `lgd = clamp(0.05,0.95, 1 - 0.78/(ratio/100) + 0.08)`, `recoveryRate = (1-lgd)*100`, `el = pd/100*lgd*deposit`.
-- `[PDF로 저장]`(window.print) + 인쇄 전용 표지(`hidden print:block`) + `@media print`(A4 landscape, print-color-adjust exact, break-inside avoid, 레일/버튼 숨김).
+싣는 것 = 모델이 실제로 내는 값만: 등급 분포 · 등급별 실측 사고율 · 예측 PD · 성능지표(AUC/AP/Brier/단조성) · 워치리스트 집중도.
+
+- `GET /api/monitor/portfolio` → `ModelDashboard` 타입 ([src/entities/contract/types.ts](src/entities/contract/types.ts)), 훅 `useModelDashboard()`.
+  목 데이터는 전부 `GRADE_SCALE` 실측 상수에서 생성 — 등급표 고치면 대시보드가 따라 바뀜.
+- [src/widgets/model-dashboard/](src/widgets/model-dashboard/) 구성:
+  1. **헤드라인(다크)**: "하위 34.6%의 워치리스트에서 전체 사고의 83.8%가 발생했습니다" + 계약비중 vs 사고비중 비교 막대
+     + 4지표(워치 사고율 18.4% / 위험배수 9.7배 / 포착률 83.8% / AUC 0.8595)
+  2. **등급별 실제 사고율**: 막대=실측 사고율, 점=예측 PD(캘리브레이션), 워치 경계 아래는 진하게. 하단에 건수.
+  3. **위험 순 열람 시 사고 포착**(누적 곡선): C부터 훑을 때 계약 x% → 사고 y%. 위젯에서 등급 배열로 직접 계산.
+  4. **등급별 분포 상세 표**: 계약·사고·실측 사고율·예측 PD·실제÷예측(1에서 멀면 주황).
+- 행(`MonitorRow`) 2단 블록도 모델 지표로 교체: **모델 예측 PD** 전→후 / **동일등급 실측 사고율** 전→후(“CCC 집단 827건 기준”) / **회수 전략** 전→후.
+- `[PDF로 저장]`(window.print) + 인쇄 표지 + `@media print`(A4 landscape, print-color-adjust exact, break-inside avoid).
 
 ## 배포 (Vercel)
 - **원격이 초기 커밋 상태였음** — 로컬 13개 커밋 미푸시가 404 NOT_FOUND의 원인이었다. 확인: `git log origin/main..HEAD`.

@@ -5,9 +5,9 @@ import type {
   UnderwriteReq,
   UnderwriteRes,
 } from "@/entities/assessment";
-import type { MonitorContract, PortfolioSummary, Snapshot } from "@/entities/contract";
+import type { MonitorContract, ModelDashboard, Snapshot } from "@/entities/contract";
 import type { RecoveryReq, RecoveryRes } from "@/entities/recovery-case";
-import { gradeByIdx, gradeFromPd } from "@/shared/config/grades";
+import { GRADE_SCALE, gradeByIdx, gradeFromPd } from "@/shared/config/grades";
 import { PATH_LABEL } from "@/entities/recovery-case";
 
 const mockDelay = () => delay(800 + Math.random() * 700);
@@ -220,10 +220,10 @@ const underwriteScore = http.post("/api/underwrite/score", async ({ request }) =
   let gradeIdx = modelGrade.idx;
   let gradeReason: string;
   if (jeonseRatio > 100) {
-    gradeIdx = 12;
+    gradeIdx = 18;
     gradeReason = `전세가율 ${jeonseRatio}% → D (HR0 깡통주택 강제)`;
   } else if (req.seniorAmount > 0) {
-    gradeIdx = Math.min(12, modelGrade.idx + 1);
+    gradeIdx = Math.min(18, modelGrade.idx + 1);
     gradeReason = `PD ${pdPct}% → ${modelGrade.name} → ${gradeByIdx(gradeIdx).name} (HR1 선순위권리)`;
   } else {
     gradeReason = `PD ${pdPct}% → ${modelGrade.name} (하드룰 미발동)`;
@@ -369,86 +369,48 @@ const SEED_CONTRACTS: MonitorContract[] = [
   },
 ];
 
-/**
- * 스냅샷에 13등급 + 경제성 지표 부여.
- * 경매 낙찰가율 78% + 부대비용 8%p 가정 → LGD, 회수율 = 1-LGD, EL = PD × LGD × 보증금
- */
-const enrichSnapshot = (s: Snapshot, deposit: number): Snapshot => {
+// 스냅샷에 등급 필드 부여 (PD → 등급). 모델 산출물 외 지표는 만들지 않는다.
+const enrichSnapshot = (s: Snapshot): Snapshot => {
   const g = gradeFromPd(s.riskPct);
-  const lgd = Math.min(0.95, Math.max(0.05, 1 - 0.78 / (s.jeonseRatio / 100) + 0.08));
-  return {
-    ...s,
-    grade13: g.name,
-    gradeIdx: g.idx,
-    recoveryRate: Math.round((1 - lgd) * 1000) / 10,
-    el: Math.round((s.riskPct / 100) * lgd * deposit),
-  };
+  return { ...s, grade13: g.name, gradeIdx: g.idx };
 };
-const ENRICHED_CONTRACTS: MonitorContract[] = SEED_CONTRACTS.map((c) => {
-  const deposit = c.deposit ?? 250_000_000;
-  return {
-    ...c,
-    deposit,
-    before: enrichSnapshot(c.before, deposit),
-    after: c.after ? enrichSnapshot(c.after, deposit) : null,
-  };
-});
+const ENRICHED_CONTRACTS: MonitorContract[] = SEED_CONTRACTS.map((c) => ({
+  ...c,
+  before: enrichSnapshot(c.before),
+  after: c.after ? enrichSnapshot(c.after) : null,
+}));
 
-// ── GET /api/monitor/portfolio ── 포트폴리오 전체 요약 (전부 데모용 목데이터)
-// 등급 분포는 2026 홀드아웃 실측 분포를 따름: 투자등급 73% / 투기등급 27%, AAA 6%
-const GRADE_DIST: [number, number][] = [
-  [0, 749],
-  [1, 374],
-  [2, 499],
-  [3, 1373],
-  [4, 2122],
-  [5, 3994],
-  [6, 1498],
-  [7, 874],
-  [8, 499],
-  [9, 250],
-  [10, 150],
-  [11, 62],
-  [12, 36],
-];
-const AVG_DEPOSIT = 229_500_000;
-
+// ── GET /api/monitor/portfolio ──
+// 전부 모델 산출물: 등급별 분포·실측 사고율·예측 PD·성능 지표. (2024 시험셋 25,519건)
 const monitorPortfolio = http.get("/api/monitor/portfolio", async () => {
   await mockDelay();
-  const grades = GRADE_DIST.map(([idx, count]) => {
-    const g = gradeByIdx(idx);
-    // 상위 등급일수록 평균 보증금이 큼(아파트 비중) — 익스포저 가중
-    const weight = 1.25 - idx * 0.03;
-    return {
-      idx,
-      name: g.name,
-      count,
-      exposure: Math.round((count * AVG_DEPOSIT * weight) / 1_000_000) * 1_000_000,
-    };
-  });
-  const contractCount = grades.reduce((s, g) => s + g.count, 0);
-  const totalExposure = grades.reduce((s, g) => s + g.exposure, 0);
-
-  const res: PortfolioSummary = {
+  const grades = GRADE_SCALE.map((g) => ({
+    idx: g.idx,
+    name: g.name,
+    count: g.testCount,
+    actualRate: g.actualRate,
+    predictedPd: g.predictedPd,
+  }));
+  const res: ModelDashboard = {
     asOf: "2026-07-25",
-    contractCount,
-    totalExposure,
-    el: {
-      ytd: 128_400_000_000,
-      month: 21_800_000_000,
-      momDelta: 3_700_000_000,
-      realizedYtd: 94_600_000_000,
+    dataset: {
+      total: 50054,
+      incidents: 3777,
+      incidentRate: 7.55,
+      testFrom: "2024-01",
+      testTo: "2024-12",
+      testCount: 25519,
     },
-    recovery: { actualYtd: 74.2, predicted: 75.4, momDelta: 2.4, avgMonths: 8.4 },
-    paths: [
-      { path: "셀프낙찰", count: 142, recoveredAmount: 31_200_000_000 },
-      { path: "배당대기", count: 386, recoveredAmount: 62_800_000_000 },
-      { path: "협의매입", count: 47, recoveredAmount: 9_400_000_000 },
-      { path: "캠코공매", count: 18, recoveredAmount: 2_100_000_000 },
-      { path: "재산추적", count: 9, recoveredAmount: 600_000_000 },
-    ],
+    performance: { auc: 0.8595, ap: 0.475, brier: 0.05265, gradeMonotonicity: 0.9938 },
+    watch: {
+      thresholdGrade: "BB+",
+      contractShare: 34.6,
+      captureRate: 83.8,
+      watchRate: 18.41,
+      nonWatchRate: 1.89,
+      lift: 9.7,
+    },
     grades,
-    migration: { downgraded: 4, upgraded: 1, toSpeculative: 2 },
   };
   return HttpResponse.json(res);
 });
