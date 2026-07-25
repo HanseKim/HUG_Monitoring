@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip } from "recharts";
 import { analyzeRecovery, useRecoveryAnalyze } from "@/entities/recovery-case";
 import type { RecoveryPath, RecoveryReq, RecoveryRes } from "@/entities/recovery-case";
@@ -71,11 +71,42 @@ function ReportSkeleton() {
   );
 }
 
+// 데모 프리필 — 세종 합성 목데이터. 셀프낙찰 게이트 3개 통과 케이스
+const DEMO_DETAIL = "한솔동 12-3 ○○빌라 302호";
+const DEMO_REQ: RecoveryReq = {
+  caseNo: "2026타경10001",
+  address: `세종 세종시 ${DEMO_DETAIL}`,
+  houseType: "다세대주택",
+  areaM2: 45.2,
+  subrogationAmount: 280_000_000,
+  seniorAmount: 0,
+  appraisalPrice: 320_000_000,
+  minBidPrice: 224_000_000,
+  failedBidCount: 1,
+  evictionStatus: "양호",
+  defectStatus: "양호",
+  opposableTenant: "무",
+};
+
 export function RecoveryPage() {
   const accent = getTab("recovery").accent;
   const [mode, setMode] = useState<"single" | "csv">("single");
   const single = useRecoveryAnalyze();
   const [singleReq, setSingleReq] = useState<RecoveryReq | null>(null);
+
+  // 진입 시 데모 레포트 자동 표시 — 입력을 바꿔 판정하면 실제(목) API로 재계산.
+  // 부팅 직후 fetch는 MSW 워커 활성화 레이스로 응답이 유실될 수 있어 짧게 지연.
+  const demoFired = useRef(false);
+  useEffect(() => {
+    const t = setTimeout(() => {
+      if (demoFired.current) return;
+      demoFired.current = true;
+      setSingleReq(DEMO_REQ);
+      single.mutate(DEMO_REQ);
+    }, 400);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const [batch, setBatch] = useState<BatchItem[] | null>(null);
   const [batchLoading, setBatchLoading] = useState(false);
@@ -144,6 +175,7 @@ export function RecoveryPage() {
       {mode === "single" ? (
         <>
           <RecoveryForm
+            initial={{ ...DEMO_REQ, detailAddress: DEMO_DETAIL }}
             loading={single.isPending}
             onSubmit={(req) => {
               setSingleReq(req);

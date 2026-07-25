@@ -7,6 +7,7 @@ import type {
 } from "@/entities/assessment";
 import type { MonitorContract } from "@/entities/contract";
 import type { RecoveryReq, RecoveryRes } from "@/entities/recovery-case";
+import { gradeByIdx, gradeFromPd } from "@/shared/config/grades";
 
 const mockDelay = () => delay(800 + Math.random() * 700);
 
@@ -212,6 +213,22 @@ const underwriteScore = http.post("/api/underwrite/score", async ({ request }) =
       `선순위금액 ${req.seniorAmount.toLocaleString("ko-KR")}원 — 경매 회수액에서 우선 차감 반영`,
     );
 
+  // ── 13등급 산정 (grade_scale.py 로직 재현) ──
+  // HR0: 전세가율>100% 무조건 D / HR1(선순위권리): 1등급 강등 / 승급 없음
+  const modelGrade = gradeFromPd(pdPct);
+  let gradeIdx = modelGrade.idx;
+  let gradeReason: string;
+  if (jeonseRatio > 100) {
+    gradeIdx = 12;
+    gradeReason = `전세가율 ${jeonseRatio}% → D (HR0 깡통주택 강제)`;
+  } else if (req.seniorAmount > 0) {
+    gradeIdx = Math.min(12, modelGrade.idx + 1);
+    gradeReason = `PD ${pdPct}% → ${modelGrade.name} → ${gradeByIdx(gradeIdx).name} (HR1 선순위권리)`;
+  } else {
+    gradeReason = `PD ${pdPct}% → ${modelGrade.name} (하드룰 미발동)`;
+  }
+  const finalGrade = gradeByIdx(gradeIdx);
+
   const res: UnderwriteRes = {
     verdict,
     pdPct,
@@ -221,6 +238,10 @@ const underwriteScore = http.post("/api/underwrite/score", async ({ request }) =
     expectedPremium,
     reasons,
     jeonseRatio,
+    grade13: finalGrade.name,
+    gradeIdx: finalGrade.idx,
+    gradeBand: finalGrade.band,
+    gradeReason,
   };
   return HttpResponse.json(res);
 });
@@ -272,7 +293,7 @@ const SEED_CONTRACTS: MonitorContract[] = [
     address: "경기 수원시 팔달구 ▽▽오피스텔 808호",
     houseType: "오피스텔",
     before: { grade: "안심", riskPct: 6.8, jeonseRatio: 76, snapshotAt: "2026-07-05" },
-    after: { grade: "안심", riskPct: 7.9, jeonseRatio: 76, snapshotAt: "2026-07-20" },
+    after: { grade: "안심", riskPct: 7.1, jeonseRatio: 76, snapshotAt: "2026-07-20" },
     trigger: "T2_금리",
     reason: "기준금리 0.25%p 인상 — 등급 변동 없음, 경보만 발령",
     recommendations: ["차주 상환능력 지표 점검"],
@@ -309,13 +330,24 @@ const SEED_CONTRACTS: MonitorContract[] = [
   },
 ];
 
+// 스냅샷에 13등급 필드 부여 (riskPct → 등급 환산)
+const enrichSnapshot = <S extends { riskPct: number }>(s: S): S => {
+  const g = gradeFromPd(s.riskPct);
+  return { ...s, grade13: g.name, gradeIdx: g.idx };
+};
+const ENRICHED_CONTRACTS: MonitorContract[] = SEED_CONTRACTS.map((c) => ({
+  ...c,
+  before: enrichSnapshot(c.before),
+  after: c.after ? enrichSnapshot(c.after) : null,
+}));
+
 const monitorContracts = http.get("/api/monitor/contracts", async ({ request }) => {
   await mockDelay();
   const url = new URL(request.url);
   const changed = url.searchParams.get("changed");
   const q = url.searchParams.get("q")?.trim() ?? "";
 
-  let list = SEED_CONTRACTS;
+  let list = ENRICHED_CONTRACTS;
   if (q) {
     list = list.filter(
       (c) => c.address.includes(q) || c.contractId.toLowerCase().includes(q.toLowerCase()),

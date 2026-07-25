@@ -1,1 +1,1 @@
-export { MonitorCard, isDowngrade } from "./MonitorCard";
+export { MonitorCard, isDowngrade, contractDelta } from "./MonitorCard";

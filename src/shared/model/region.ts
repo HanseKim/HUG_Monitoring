@@ -9,9 +9,10 @@ type RegionState = {
 };
 
 /** 전역 지역 선택 — 사이드바에서 고르면 각 탭 입력폼의 기본값이 된다 */
+// 발제사 제공 데이터가 세종시뿐이라 데모 기본 지역은 세종 (나머지는 합성 목데이터)
 export const useRegionStore = create<RegionState>((set) => ({
-  sido: "서울",
-  sigungu: "강서구",
+  sido: "세종",
+  sigungu: "세종시",
   setSido: (sido) => set({ sido, sigungu: SIGUNGU_MAP[sido]?.[0] ?? "" }),
   setSigungu: (sigungu) => set({ sigungu }),
 }));

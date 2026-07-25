@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useMonitorContracts } from "@/entities/contract";
 import { MonitorSearch, type MonitorFilter } from "@/features/monitor-search";
 import { PageHeader } from "@/widgets/page-header";
-import { MonitorCard, isDowngrade } from "@/widgets/monitor-card";
+import { MonitorCard, isDowngrade, contractDelta } from "@/widgets/monitor-card";
 import { Card, EmptyState, ErrorState, Skeleton } from "@/shared/ui";
 
 function useDebounced(value: string, ms = 300) {
@@ -23,15 +23,19 @@ export function MonitorPage() {
   const list = useMonitorContracts(q ? { q } : { changed: true });
   const all = useMonitorContracts({}); // 요약 스탯용 전체
 
-  const filtered = (list.data ?? []).filter((c) => {
-    if (filter === "downgrade") return isDowngrade(c);
-    if (filter === "alert") return c.after !== null && !isDowngrade(c);
-    return true;
-  });
+  // 기본 정렬: 강등 폭(delta) 내림차순 — 강등 폭이 곧 처리 우선순위
+  const filtered = (list.data ?? [])
+    .filter((c) => {
+      if (filter === "downgrade") return isDowngrade(c);
+      if (filter === "alert") return c.after !== null && !isDowngrade(c);
+      return true;
+    })
+    .sort((a, b) => (contractDelta(b)?.delta ?? -99) - (contractDelta(a)?.delta ?? -99));
 
   const stats = {
     total: all.data?.length,
     downgrades: all.data?.filter(isDowngrade).length,
+    speculative: all.data?.filter((c) => contractDelta(c)?.crossedToSpeculative).length,
     alerts: all.data?.filter((c) => c.after !== null && !isDowngrade(c)).length,
   };
 
@@ -39,9 +43,10 @@ export function MonitorPage() {
     <div>
       <PageHeader tabKey="monitor" />
 
-      <div className="mb-5 grid grid-cols-3 gap-5">
+      <div className="mb-5 grid grid-cols-4 gap-5">
         <StatCard label="관리중 계약" value={stats.total} unit="건" />
         <StatCard label="이번달 등급하락" value={stats.downgrades} unit="건" danger />
+        <StatCard label="그중 투기등급 진입" value={stats.speculative} unit="건" danger />
         <StatCard label="경보" value={stats.alerts} unit="건" />
       </div>
 

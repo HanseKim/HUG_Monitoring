@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { scoreUnderwrite, useUnderwriteScore } from "@/entities/assessment";
 import type { UnderwriteReq } from "@/entities/assessment";
 import { UnderwriteForm } from "@/features/underwrite-form";
@@ -53,10 +53,36 @@ function SingleSkeleton() {
   );
 }
 
+// 데모 프리필 — 발제사 데이터가 세종시뿐이라 세종 합성 목데이터 사용
+const DEMO_REQ: UnderwriteReq = {
+  applicationId: "A-2026-0001",
+  sido: "세종",
+  sigungu: "세종시",
+  houseType: "다세대주택",
+  areaM2: 45.2,
+  deposit: 160_000_000,
+  housePrice: 230_000_000,
+  seniorAmount: 0,
+  appliedAt: "2026-07-25",
+};
+
 export function AssessPage() {
   const accent = getTab("assess").accent;
   const [mode, setMode] = useState<"single" | "csv">("single");
   const single = useUnderwriteScore();
+
+  // 진입 시 데모 결과 자동 표시 — 입력을 바꿔 다시 심사하면 실제(목) API로 재계산.
+  // 페이지 부팅 직후 발사된 fetch는 MSW 워커 활성화 레이스로 응답이 유실될 수 있어 짧게 지연.
+  const demoFired = useRef(false);
+  useEffect(() => {
+    const t = setTimeout(() => {
+      if (demoFired.current) return;
+      demoFired.current = true;
+      single.mutate(DEMO_REQ);
+    }, 400);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const [batchRows, setBatchRows] = useState<BatchRow[] | null>(null);
   const [batchLoading, setBatchLoading] = useState(false);
@@ -97,7 +123,11 @@ export function AssessPage() {
 
       {mode === "single" ? (
         <>
-          <UnderwriteForm loading={single.isPending} onSubmit={(req) => single.mutate(req)} />
+          <UnderwriteForm
+            initial={DEMO_REQ}
+            loading={single.isPending}
+            onSubmit={(req) => single.mutate(req)}
+          />
           <div className="mt-6">
             {single.isPending && <SingleSkeleton />}
             {single.isError && (

@@ -1,15 +1,13 @@
 import type { UnderwriteRes } from "@/entities/assessment";
-import { GradeBadge, type GradeName } from "@/shared/ui";
+import { Grade13Badge } from "@/shared/ui";
 import { formatPct } from "@/shared/lib/format";
+import { gradeFromPd } from "@/shared/config/grades";
 
-/** 모델1 위험도 → 최초 등급 */
-export const gradeFromPd = (pdPct: number): GradeName =>
-  pdPct < 5 ? "안심" : pdPct < 20 ? "주의" : "위험";
-
-/** 판정 히어로 — 다크 관제 패널. 126%룰 게이트 + 최초 등급 */
+/** 판정 히어로 — 다크 관제 패널. 126%룰 게이트 + 모델1 13등급 */
 export function VerdictHero({ result }: { result: UnderwriteRes }) {
   const approved = result.verdict === "승인";
-  const grade = gradeFromPd(result.pdPct);
+  // 신필드 우선, 없으면 PD로 환산 (하위 호환)
+  const gradeIdx = result.gradeIdx ?? gradeFromPd(result.pdPct).idx;
   const gatePass = result.jeonseRatio <= 90;
 
   return (
@@ -27,9 +25,9 @@ export function VerdictHero({ result }: { result: UnderwriteRes }) {
         </div>
         <div className="h-12 w-px bg-rail-line" aria-hidden />
         <div>
-          <p className="caption !text-rail-text">최초 등급 (모델1)</p>
+          <p className="caption !text-rail-text">최초 등급 (모델1 · 13등급)</p>
           <div className="mt-1.5">
-            <GradeBadge grade={grade} />
+            <Grade13Badge idx={gradeIdx} size="lg" showBand />
           </div>
         </div>
         <div>
@@ -42,7 +40,12 @@ export function VerdictHero({ result }: { result: UnderwriteRes }) {
           </p>
         </div>
       </div>
-      <ul className="mt-6 space-y-1.5 border-t border-rail-line pt-4">
+      {result.gradeReason && (
+        <p className="num mt-4 rounded-lg bg-rail-soft px-4 py-2.5 text-[12.5px] text-rail-text">
+          {result.gradeReason}
+        </p>
+      )}
+      <ul className="mt-5 space-y-1.5 border-t border-rail-line pt-4">
         {result.reasons.map((r, i) => (
           <li key={i} className="flex gap-2 text-[13px] leading-relaxed text-rail-text">
             <span aria-hidden>·</span>

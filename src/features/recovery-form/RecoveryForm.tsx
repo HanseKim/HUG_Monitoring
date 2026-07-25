@@ -15,23 +15,33 @@ const OPPOSABLE = ["유", "무", "미상"] as const;
 type Props = {
   loading: boolean;
   onSubmit: (req: RecoveryReq) => void;
+  /** 데모 프리필 — 진입 즉시 결과가 보이도록 목 입력값을 채워둔다 */
+  initial?: RecoveryReq & { detailAddress?: string };
 };
 
-export function RecoveryForm({ loading, onSubmit }: Props) {
+export function RecoveryForm({ loading, onSubmit, initial }: Props) {
   const accent = getTab("recovery").accent;
-  const [caseNo, setCaseNo] = useState("");
+  const [caseNo, setCaseNo] = useState(initial?.caseNo ?? "");
   const { sido, sigungu, setSido, setSigungu } = useRegionStore();
-  const [detailAddress, setDetailAddress] = useState("");
-  const [houseType, setHouseType] = useState("");
-  const [areaM2, setAreaM2] = useState("");
-  const [subrogationAmount, setSubrogationAmount] = useState("");
-  const [seniorAmount, setSeniorAmount] = useState("");
-  const [appraisalPrice, setAppraisalPrice] = useState("");
-  const [minBidPrice, setMinBidPrice] = useState("");
-  const [failedBidCount, setFailedBidCount] = useState("0");
-  const [evictionStatus, setEvictionStatus] = useState("");
-  const [defectStatus, setDefectStatus] = useState("");
-  const [opposableTenant, setOpposableTenant] = useState("");
+  const [detailAddress, setDetailAddress] = useState(initial?.detailAddress ?? "");
+  const [houseType, setHouseType] = useState(initial?.houseType ?? "");
+  const [areaM2, setAreaM2] = useState(initial ? String(initial.areaM2) : "");
+  const [subrogationAmount, setSubrogationAmount] = useState(
+    initial ? comma(initial.subrogationAmount) : "",
+  );
+  const [seniorAmount, setSeniorAmount] = useState(
+    initial && initial.seniorAmount > 0 ? comma(initial.seniorAmount) : "",
+  );
+  const [appraisalPrice, setAppraisalPrice] = useState(
+    initial ? comma(initial.appraisalPrice) : "",
+  );
+  const [minBidPrice, setMinBidPrice] = useState(initial ? comma(initial.minBidPrice) : "");
+  const [failedBidCount, setFailedBidCount] = useState(
+    initial ? String(initial.failedBidCount) : "0",
+  );
+  const [evictionStatus, setEvictionStatus] = useState(initial?.evictionStatus ?? "");
+  const [defectStatus, setDefectStatus] = useState(initial?.defectStatus ?? "");
+  const [opposableTenant, setOpposableTenant] = useState(initial?.opposableTenant ?? "");
   const [touched, setTouched] = useState(false);
 
   const valid =

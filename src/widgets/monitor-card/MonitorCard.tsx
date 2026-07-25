@@ -1,7 +1,8 @@
 import { useState } from "react";
 import type { MonitorContract, Snapshot, TriggerType } from "@/entities/contract";
-import { Badge, Card, GradeBadge, type GradeName } from "@/shared/ui";
+import { Badge, Card, Grade13Badge } from "@/shared/ui";
 import { formatPct } from "@/shared/lib/format";
+import { gradeDelta, gradeFromPd } from "@/shared/config/grades";
 
 const TRIGGER_LABEL: Record<TriggerType, string> = {
   T1_정기: "T1 정기",
@@ -10,34 +11,32 @@ const TRIGGER_LABEL: Record<TriggerType, string> = {
   T4_지역리스크: "T4 지역리스크",
 };
 
-const GRADE_ORDER: Record<string, number> = { 안심: 0, 주의: 1, 위험: 2 };
+/** 스냅샷의 등급 idx — 신필드 우선, 없으면 riskPct 환산 (하위 호환) */
+export const snapshotIdx = (s: Snapshot): number =>
+  s.gradeIdx ?? gradeFromPd(s.riskPct).idx;
+
+/** 강등 델타 — 정렬 키. 변동 없으면 0 */
+export const contractDelta = (c: MonitorContract) =>
+  c.after ? gradeDelta(snapshotIdx(c.before), snapshotIdx(c.after)) : null;
 
 export const isDowngrade = (c: MonitorContract) =>
-  c.after !== null && GRADE_ORDER[c.after.grade] > GRADE_ORDER[c.before.grade];
+  contractDelta(c)?.direction === "강등";
 
-function SnapshotBox({
-  snap,
-  tone,
-}: {
-  snap: Snapshot;
-  tone: "before" | "after";
-}) {
+function SnapshotBox({ snap, tone }: { snap: Snapshot; tone: "before" | "after" }) {
   const mutedTone = tone === "before";
   return (
     <div
-      className={`w-[220px] rounded-lg border p-4 ${
+      className={`w-[230px] rounded-lg border p-4 ${
         mutedTone ? "border-divider bg-canvas" : "border-divider bg-surface"
       }`}
     >
       <p className="mb-2 text-[11px] font-bold text-muted">
         {mutedTone ? "변동 전" : "변동 후"}
       </p>
-      <div className="flex items-center gap-2">
-        <GradeBadge grade={snap.grade as GradeName} />
+      <div className={`flex items-center gap-2.5 ${mutedTone ? "opacity-70" : ""}`}>
+        <Grade13Badge idx={snapshotIdx(snap)} />
         <span
-          className={`text-[20px] tabular-nums ${
-            mutedTone ? "font-normal text-muted" : "font-bold text-ink"
-          }`}
+          className={`num text-[19px] ${mutedTone ? "text-muted" : "font-semibold text-ink"}`}
         >
           {formatPct(snap.riskPct)}
         </span>
@@ -51,31 +50,49 @@ function SnapshotBox({
 }
 
 export function MonitorCard({ contract }: { contract: MonitorContract }) {
-  const downgrade = isDowngrade(contract);
+  const delta = contractDelta(contract);
+  const downgrade = delta?.direction === "강등";
   // 임차인 고지 — 등급 하락 시 세입자에게 즉시 안내 (데모: 로컬 상태)
   const [noticeSent, setNoticeSent] = useState(false);
+
   return (
     <Card className={`p-6 ${downgrade ? "border-t-[3px] border-t-grade-danger" : ""}`}>
-      <div className="mb-4 flex items-center justify-between">
+      <div className="mb-4 flex items-center justify-between gap-3">
         <p className="text-[14px] font-bold text-ink">
           {contract.address}
           <span className="ml-2 font-normal text-muted">
             · {contract.houseType} · {contract.contractId}
           </span>
         </p>
-        {contract.trigger && (
-          <Badge className="bg-monitor-soft text-monitor">
-            {TRIGGER_LABEL[contract.trigger]}
-          </Badge>
-        )}
+        <div className="flex shrink-0 items-center gap-2">
+          {delta?.crossedToSpeculative && (
+            <Badge className="bg-grade-danger-soft text-grade-danger">투기등급 진입</Badge>
+          )}
+          {contract.trigger && (
+            <Badge className="bg-stage-monitor-soft text-stage-monitor">
+              {TRIGGER_LABEL[contract.trigger]}
+            </Badge>
+          )}
+        </div>
       </div>
 
       {contract.after ? (
-        <div className="flex items-center gap-5">
+        <div className="flex items-center gap-4">
           <SnapshotBox snap={contract.before} tone="before" />
-          <span className="text-[20px] text-faint" aria-hidden>
-            →
-          </span>
+          <div className="flex flex-col items-center px-1">
+            <span className="text-[18px] text-faint" aria-hidden>
+              →
+            </span>
+            {delta && delta.delta !== 0 && (
+              <span
+                className={`num mt-1 whitespace-nowrap text-[12px] font-semibold ${
+                  downgrade ? "text-grade-danger" : "text-grade-safe"
+                }`}
+              >
+                {Math.abs(delta.delta)}등급 {delta.direction}
+              </span>
+            )}
+          </div>
           <SnapshotBox snap={contract.after} tone="after" />
         </div>
       ) : (

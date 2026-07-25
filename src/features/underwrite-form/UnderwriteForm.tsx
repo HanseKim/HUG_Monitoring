@@ -14,18 +14,24 @@ const genId = () =>
 type Props = {
   loading: boolean;
   onSubmit: (req: UnderwriteReq) => void;
+  /** 데모 프리필 — 진입 즉시 결과가 보이도록 목 입력값을 채워둔다 */
+  initial?: UnderwriteReq;
 };
 
-export function UnderwriteForm({ loading, onSubmit }: Props) {
+export function UnderwriteForm({ loading, onSubmit, initial }: Props) {
   const accent = getTab("assess").accent;
-  const [applicationId, setApplicationId] = useState(genId());
+  const [applicationId, setApplicationId] = useState(initial?.applicationId ?? genId());
   const { sido, sigungu, setSido, setSigungu } = useRegionStore();
-  const [houseType, setHouseType] = useState("");
-  const [areaM2, setAreaM2] = useState("");
-  const [deposit, setDeposit] = useState("");
-  const [housePrice, setHousePrice] = useState("");
-  const [seniorAmount, setSeniorAmount] = useState("");
-  const [appliedAt, setAppliedAt] = useState(new Date().toISOString().slice(0, 10));
+  const [houseType, setHouseType] = useState(initial?.houseType ?? "");
+  const [areaM2, setAreaM2] = useState(initial ? String(initial.areaM2) : "");
+  const [deposit, setDeposit] = useState(initial ? comma(initial.deposit) : "");
+  const [housePrice, setHousePrice] = useState(initial ? comma(initial.housePrice) : "");
+  const [seniorAmount, setSeniorAmount] = useState(
+    initial && initial.seniorAmount > 0 ? comma(initial.seniorAmount) : "",
+  );
+  const [appliedAt, setAppliedAt] = useState(
+    initial?.appliedAt ?? new Date().toISOString().slice(0, 10),
+  );
   const [touched, setTouched] = useState(false);
 
   const valid =

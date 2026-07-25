@@ -1,6 +1,7 @@
 import { NavLink } from "react-router-dom";
 import { TABS } from "@/shared/config/tabs";
 import { RegionSelect } from "@/features/region-select";
+import ONJEON_LOGO from "@/shared/ui/ONJEON_LOGO.png";
 
 /**
  * 관제 레일 — 내비게이션이 곧 파이프라인.
@@ -13,9 +14,9 @@ export function Sidebar() {
 
   return (
     <aside className="print-hidden sticky top-0 flex h-screen w-[248px] shrink-0 flex-col bg-rail">
-      <div className="px-6 pb-5 pt-7">
-        <h1 className="text-[21px] font-bold tracking-tight text-white">온전</h1>
-        <p className="mt-1 text-[11.5px] leading-relaxed text-rail-text">
+      <div className="px-6 pt-7 pb-5">
+        <img src={ONJEON_LOGO} alt="ONJEON_LOGO" className="h-10 w-50" />
+        <p className="mt-2.5 text-[11.5px] leading-relaxed text-rail-text">
           전세의 처음부터 끝까지, 온전하게
         </p>
       </div>

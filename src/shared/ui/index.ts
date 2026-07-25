@@ -1,7 +1,7 @@
 export { Card } from "./Card";
 export { Button } from "./Button";
 export { Spinner } from "./Spinner";
-export { Badge, GradeBadge } from "./Badge";
+export { Badge, GradeBadge, Grade13Badge } from "./Badge";
 export type { GradeName } from "./Badge";
 export { Field, Input, Select } from "./Input";
 export { Toggle } from "./Toggle";
