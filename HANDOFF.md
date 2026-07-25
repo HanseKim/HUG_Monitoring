@@ -22,7 +22,9 @@ HUG 내부 전세보증 리스크 관제 콘솔. Vite+React18+TS+Tailwind, FSD, 
 - 소스: [src/shared/config/grades.ts](src/shared/config/grades.ts) — `GRADE_SCALE`(19개), `gradeFromPd`, `gradeByIdx`, `gradeDelta`, `isWatch`, `WATCH_START=10`.
 - 등급 순서: AAA·AA+·AA0·AA-·A+·A0·A-·BBB+·BBB0·BBB- (투자등급, idx 0~9) / **BB+·BB0·BB-·B+·B0·B-·CCC·CC·C (워치리스트, idx 10~18)**.
 - 각 등급에 **2024 시험셋 실측치**(testCount, actualRate, predictedPd)가 상수로 박혀 있음 — 대시보드가 이걸 그대로 씀.
-- `maxPd`는 등급별 평균 PD에서 유도한 **근사 경계**. 정본 경계표는 모델 저장소 `grade_scale.py` 기준으로 교체할 것.
+- `maxPd`는 **모델 정본 경계표**(`~/Downloads/dive 데이터/등급판정모델/code/run.py`의 `GRADE_BANDS`)를 옮긴 값.
+  판정도 모델 `to_grade()`와 동일하게 `lo <= pd < hi`(상한 미만). 경계 변경 시 모델 코드와 함께 고칠 것.
+  ⚠ 같은 폴더의 `dive 데이터/grade_scale.py`는 **구버전 13등급(AAA~D)** 이라 참조하지 말 것 — 정본은 `등급판정모델/code/run.py`.
 - 정렬·비교·델타는 반드시 `idx`(숫자)로. 문자열 파싱 금지.
 - 이전 13등급(AAA~D) 체계는 폐기됨. `GRADE13`은 하위 호환 별칭으로만 남아 있음.
 - 색 매핑: legacy 3구간(안심 idx 0~6 / 주의 7~12 / 위험 13~18) — 실측 사고율 기준으로 나눔.

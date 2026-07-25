@@ -7,7 +7,7 @@ import type {
 } from "@/entities/assessment";
 import type { MonitorContract, ModelDashboard, Snapshot } from "@/entities/contract";
 import type { RecoveryReq, RecoveryRes } from "@/entities/recovery-case";
-import { GRADE_SCALE, gradeByIdx, gradeFromPd } from "@/shared/config/grades";
+import { GRADE_SCALE, gradeFromPd, supervision } from "@/shared/config/grades";
 import { PATH_LABEL } from "@/entities/recovery-case";
 
 const mockDelay = () => delay(800 + Math.random() * 700);
@@ -214,21 +214,10 @@ const underwriteScore = http.post("/api/underwrite/score", async ({ request }) =
       `선순위금액 ${req.seniorAmount.toLocaleString("ko-KR")}원 — 경매 회수액에서 우선 차감 반영`,
     );
 
-  // ── 13등급 산정 (grade_scale.py 로직 재현) ──
-  // HR0: 전세가율>100% 무조건 D / HR1(선순위권리): 1등급 강등 / 승급 없음
-  const modelGrade = gradeFromPd(pdPct);
-  let gradeIdx = modelGrade.idx;
-  let gradeReason: string;
-  if (jeonseRatio > 100) {
-    gradeIdx = 18;
-    gradeReason = `전세가율 ${jeonseRatio}% → D (HR0 깡통주택 강제)`;
-  } else if (req.seniorAmount > 0) {
-    gradeIdx = Math.min(18, modelGrade.idx + 1);
-    gradeReason = `PD ${pdPct}% → ${modelGrade.name} → ${gradeByIdx(gradeIdx).name} (HR1 선순위권리)`;
-  } else {
-    gradeReason = `PD ${pdPct}% → ${modelGrade.name} (하드룰 미발동)`;
-  }
-  const finalGrade = gradeByIdx(gradeIdx);
+  // ── 등급 산정 — 현행 모델은 하드룰 없이 PD를 19등급 경계표로 자른다 (predict.py to_grade) ──
+  const finalGrade = gradeFromPd(pdPct);
+  const gradeReason =
+    `PD ${pdPct}% → ${finalGrade.name} · ${finalGrade.band} · ${supervision(finalGrade.idx)}`;
 
   const res: UnderwriteRes = {
     verdict,

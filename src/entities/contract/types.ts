@@ -5,7 +5,7 @@ export type Snapshot = {
   riskPct: number;
   jeonseRatio: number;
   snapshotAt: string;
-  // 13등급 개편 추가 필드 (하위 호환 — 없으면 riskPct로 환산)
+  // 모델 등급 필드 (없으면 riskPct로 환산 — 하위 호환)
   grade13?: string;
   gradeIdx?: number;
   /** 모델 입력 피처 — 선순위채권금액 ÷ 주택가액 (%) */

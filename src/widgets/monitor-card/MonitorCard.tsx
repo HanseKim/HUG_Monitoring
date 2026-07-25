@@ -32,7 +32,7 @@ export function MonitorRow({ contract }: { contract: MonitorContract }) {
 
   const fromIdx = snapshotIdx(contract.before);
   const toIdx = contract.after ? snapshotIdx(contract.after) : fromIdx;
-  // 사기·사고 가능 구간(위험 B 이하 또는 투기등급 진입) 강등 → 회수 전략 사전 설계 대상
+  // 위험 구간(B+ 이하) 또는 워치리스트 편입 강등 → 회수 전략 사전 설계 대상
   const recoveryTarget = downgrade && (toIdx >= 13 || delta!.crossedToSpeculative);
 
   const b = contract.before;

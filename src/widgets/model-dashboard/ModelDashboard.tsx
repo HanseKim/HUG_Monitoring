@@ -37,12 +37,15 @@ export function ModelDashboardSkeleton() {
 export function ModelDashboard({ data }: { data: Dash }) {
   const { watch, grades, performance, dataset } = data;
 
-  const withIncidents = grades.map((g) => ({
-    ...g,
-    incidents: Math.round((g.count * g.actualRate) / 100),
-    zone: gradeByIdx(g.idx).legacy,
-    isWatch: g.idx >= WATCH_START,
-  }));
+  // 시험셋에 표본이 있는 등급만 표시 (AA+ ~ C 18개)
+  const withIncidents = grades
+    .filter((g) => g.count > 0)
+    .map((g) => ({
+      ...g,
+      incidents: Math.round((g.count * g.actualRate) / 100),
+      zone: gradeByIdx(g.idx).legacy,
+      isWatch: g.idx >= WATCH_START,
+    }));
   const totalContracts = withIncidents.reduce((s, g) => s + g.count, 0);
   const totalIncidents = withIncidents.reduce((s, g) => s + g.incidents, 0);
   const investCount = withIncidents
@@ -75,7 +78,7 @@ export function ModelDashboard({ data }: { data: Dash }) {
           <div>
             <p className="caption !text-rail-text">등급별 계약 분포</p>
             <p className="mt-1 text-[12px] text-rail-text/70">
-              2024 시험셋 {comma(dataset.testCount)}건 · 사고 {comma(totalIncidents)}건
+              2024 시험셋 {comma(totalContracts)}건 · 사고 {comma(totalIncidents)}건
             </p>
           </div>
           <p className="num text-[11.5px] text-rail-text/80">
@@ -110,11 +113,14 @@ export function ModelDashboard({ data }: { data: Dash }) {
         </div>
         {/* 워치 경계 표시 */}
         <div className="mt-2 flex text-[10px] text-rail-text/60">
-          <span style={{ flex: WATCH_START }} className="border-t border-rail-line pt-1.5">
+          <span
+            style={{ flex: withIncidents.filter((g) => !g.isWatch).length }}
+            className="border-t border-rail-line pt-1.5"
+          >
             투자등급 (BBB- 이상)
           </span>
           <span
-            style={{ flex: grades.length - WATCH_START }}
+            style={{ flex: withIncidents.filter((g) => g.isWatch).length }}
             className="border-t border-grade-caution/50 pt-1.5 text-grade-caution/80"
           >
             워치리스트 ({watch.thresholdGrade} 이하)

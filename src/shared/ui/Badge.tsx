@@ -30,8 +30,8 @@ export function GradeBadge({
   );
 }
 
-/** 13등급(AAA~D) 배지 — 색은 3단계 신호등 매핑 재사용, 글자 등급 병기 원칙 유지 */
-export function Grade13Badge({
+/** 19등급(AAA~C) 배지 — 색은 3단계 신호등 매핑 재사용, 글자 등급 병기 원칙 유지 */
+export function GradeBadge19({
   idx,
   size = "md",
   showBand = false,

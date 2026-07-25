@@ -1,4 +1,4 @@
-import { GRADE13 } from "@/shared/config/grades";
+import { GRADE_SCALE } from "@/shared/config/grades";
 
 const ZONE_BASE: Record<string, string> = {
   안심: "bg-grade-safe/15",
@@ -12,7 +12,7 @@ const ZONE_SOLID: Record<string, string> = {
 };
 
 /**
- * 13등급 트랙 — AAA→D 눈금 위에 전(윤곽)→후(채움) 이동을 표시.
+ * 19등급 트랙 — AAA→C 눈금 위에 전(윤곽)→후(채움) 이동을 표시.
  * 강등 구간은 중간 톤으로 칠해 이동 폭이 한눈에 보이게 한다.
  */
 export function GradeTrack({ from, to }: { from: number; to: number }) {
@@ -20,7 +20,7 @@ export function GradeTrack({ from, to }: { from: number; to: number }) {
   const hi = Math.max(from, to);
   return (
     <div className="flex items-center gap-[3px]" aria-label={`등급 이동 ${from}→${to}`}>
-      {GRADE13.map((g) => {
+      {GRADE_SCALE.map((g) => {
         const isFrom = g.idx === from;
         const isTo = g.idx === to;
         const inSpan = g.idx > lo && g.idx < hi;
