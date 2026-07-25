@@ -5,6 +5,8 @@ import { HOUSE_TYPES } from "@/entities/assessment";
 import { Button, Card, Field, Input, Select } from "@/shared/ui";
 import { comma, uncomma } from "@/shared/lib/format";
 import { getTab } from "@/shared/config/tabs";
+import { SIDO_LIST, SIGUNGU_MAP } from "@/shared/config/regions";
+import { useRegionStore } from "@/shared/model/region";
 
 const EVICTION = ["양호", "점유중", "미상"] as const;
 const DEFECT = ["양호", "경미", "보수필요", "미상"] as const;
@@ -18,7 +20,8 @@ type Props = {
 export function RecoveryForm({ loading, onSubmit }: Props) {
   const accent = getTab("recovery").accent;
   const [caseNo, setCaseNo] = useState("");
-  const [address, setAddress] = useState("");
+  const { sido, sigungu, setSido, setSigungu } = useRegionStore();
+  const [detailAddress, setDetailAddress] = useState("");
   const [houseType, setHouseType] = useState("");
   const [areaM2, setAreaM2] = useState("");
   const [subrogationAmount, setSubrogationAmount] = useState("");
@@ -32,7 +35,7 @@ export function RecoveryForm({ loading, onSubmit }: Props) {
   const [touched, setTouched] = useState(false);
 
   const valid =
-    address.trim() !== "" &&
+    detailAddress.trim() !== "" &&
     houseType !== "" &&
     Number(areaM2) > 0 &&
     uncomma(subrogationAmount) > 0 &&
@@ -58,7 +61,7 @@ export function RecoveryForm({ loading, onSubmit }: Props) {
     if (!valid) return;
     onSubmit({
       caseNo: caseNo.trim() || undefined,
-      address: address.trim(),
+      address: `${sido} ${sigungu} ${detailAddress.trim()}`,
       houseType,
       areaM2: Number(areaM2),
       subrogationAmount: uncomma(subrogationAmount),
@@ -86,12 +89,28 @@ export function RecoveryForm({ loading, onSubmit }: Props) {
               onChange={(e) => setCaseNo(e.target.value)}
             />
           </Field>
-          <Field label="주소" required>
+          <Field label="지역" required hint="사이드바의 기준 지역과 연동됩니다">
+            <div className="grid grid-cols-2 gap-2">
+              <Select
+                focusRing={accent.focusRing}
+                options={SIDO_LIST}
+                value={sido}
+                onChange={(e) => setSido(e.target.value)}
+              />
+              <Select
+                focusRing={accent.focusRing}
+                options={SIGUNGU_MAP[sido] ?? []}
+                value={sigungu}
+                onChange={(e) => setSigungu(e.target.value)}
+              />
+            </div>
+          </Field>
+          <Field label="상세주소" required>
             <Input
               focusRing={accent.focusRing}
-              placeholder="예: 인천 미추홀구 주안동 12-3"
-              value={address}
-              onChange={(e) => setAddress(e.target.value)}
+              placeholder="예: 주안동 12-3 △△오피스텔 1204호"
+              value={detailAddress}
+              onChange={(e) => setDetailAddress(e.target.value)}
             />
           </Field>
           <Field label="주택유형" required>

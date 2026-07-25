@@ -1,5 +1,6 @@
 import { NavLink } from "react-router-dom";
 import { TABS } from "@/shared/config/tabs";
+import { RegionSelect } from "@/features/region-select";
 
 // 활성 표시용 정적 클래스 (Tailwind purge 대응)
 const ACTIVE_BAR: Record<string, string> = {
@@ -51,7 +52,9 @@ export function Sidebar() {
           </NavLink>
         ))}
       </nav>
-      <footer className="px-6 py-5 text-[12px] text-muted">
+      <div className="mx-6 border-t border-divider" />
+      <RegionSelect />
+      <footer className="border-t border-divider px-6 py-4 text-[12px] text-muted">
         DIVE 2026 · HUG × 아이엔
       </footer>
     </aside>

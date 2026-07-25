@@ -4,10 +4,10 @@ import { getTab, type TabKey } from "@/shared/config/tabs";
 export function PageHeader({ tabKey }: { tabKey: TabKey }) {
   const tab = getTab(tabKey);
   return (
-    <header className="print-hidden mb-6">
+    <header className="print-hidden mb-7">
+      <div className={`mb-3 h-[3px] w-9 ${tab.accent.bg}`} />
       <h2 className="text-section">{tab.title}</h2>
       <p className="mt-1 text-[14px] text-body">{tab.description}</p>
-      <div className={`mt-4 h-1.5 rounded-full ${tab.accent.softBg}`} />
     </header>
   );
 }

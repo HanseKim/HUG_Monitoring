@@ -104,6 +104,7 @@ export function RecoveryPage() {
           value={mode}
           onChange={setMode}
           accentText={accent.text}
+          accentBorder={accent.border}
         />
       </div>
 

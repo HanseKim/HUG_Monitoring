@@ -18,8 +18,8 @@ export function GradeBadge({
 }) {
   const sizeCls =
     size === "lg"
-      ? "px-4 py-1.5 text-[24px] rounded-lg"
-      : "px-2.5 py-0.5 text-[13px] rounded-md";
+      ? "px-3.5 py-1 text-[22px] rounded-[4px]"
+      : "px-2 py-0.5 text-[13px] rounded-[3px]";
   return (
     <span
       className={`inline-flex items-center font-bold ${sizeCls} ${GRADE_STYLE[grade] ?? "bg-canvas text-label"}`}
@@ -38,7 +38,7 @@ export function Badge({
 }) {
   return (
     <span
-      className={`inline-flex items-center rounded-md px-2 py-0.5 text-[12px] font-bold ${className}`}
+      className={`inline-flex items-center rounded-[3px] px-2 py-0.5 text-[12px] font-bold ${className}`}
     >
       {children}
     </span>

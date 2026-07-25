@@ -91,6 +91,7 @@ export function UnderwritePage() {
           value={mode}
           onChange={setMode}
           accentText={accent.text}
+          accentBorder={accent.border}
         />
       </div>
 

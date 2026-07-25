@@ -4,6 +4,8 @@ import { HOUSE_TYPES, type TenantScoreReq, type HouseType } from "@/entities/ass
 import { Button, Card, Field, Input, Select, Toggle } from "@/shared/ui";
 import { comma, uncomma } from "@/shared/lib/format";
 import { getTab } from "@/shared/config/tabs";
+import { SIDO_LIST, SIGUNGU_MAP } from "@/shared/config/regions";
+import { useRegionStore } from "@/shared/model/region";
 
 const SENIOR_LIENS = ["없음", "근저당설정", "압류·가압류", "선순위존재", "미상"] as const;
 const INSURANCES = ["가입", "미가입", "미상"] as const;
@@ -15,7 +17,8 @@ type Props = {
 
 export function TenantForm({ loading, onSubmit }: Props) {
   const accent = getTab("tenant").accent;
-  const [address, setAddress] = useState("");
+  const { sido, sigungu, setSido, setSigungu } = useRegionStore();
+  const [detailAddress, setDetailAddress] = useState("");
   const [houseType, setHouseType] = useState<HouseType | "">("");
   const [depositText, setDepositText] = useState("");
   const [showDetail, setShowDetail] = useState(false);
@@ -26,14 +29,15 @@ export function TenantForm({ loading, onSubmit }: Props) {
   const [touched, setTouched] = useState(false);
 
   const deposit = uncomma(depositText);
-  const valid = address.trim() !== "" && houseType !== "" && deposit > 0;
+  const valid =
+    sido !== "" && sigungu !== "" && detailAddress.trim() !== "" && houseType !== "" && deposit > 0;
 
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
     setTouched(true);
     if (!valid) return;
     onSubmit({
-      address: address.trim(),
+      address: `${sido} ${sigungu} ${detailAddress.trim()}`,
       houseType: houseType as HouseType,
       deposit,
       ...(areaM2 ? { areaM2: Number(areaM2) } : {}),
@@ -47,16 +51,32 @@ export function TenantForm({ loading, onSubmit }: Props) {
     <Card className="print-hidden p-6">
       <form onSubmit={handleSubmit}>
         <div className="grid grid-cols-2 gap-5">
-          <Field label="주소" required>
+          <Field label="지역" required hint="사이드바의 기준 지역과 연동됩니다">
+            <div className="grid grid-cols-2 gap-2">
+              <Select
+                focusRing={accent.focusRing}
+                options={SIDO_LIST}
+                value={sido}
+                onChange={(e) => setSido(e.target.value)}
+              />
+              <Select
+                focusRing={accent.focusRing}
+                options={SIGUNGU_MAP[sido] ?? []}
+                value={sigungu}
+                onChange={(e) => setSigungu(e.target.value)}
+              />
+            </div>
+          </Field>
+          <Field label="상세주소" required>
             <Input
               focusRing={accent.focusRing}
-              placeholder="예: 서울 강서구 화곡동 123-45"
-              value={address}
-              onChange={(e) => setAddress(e.target.value)}
+              placeholder="예: 화곡동 123-45 ○○빌라 302호"
+              value={detailAddress}
+              onChange={(e) => setDetailAddress(e.target.value)}
             />
-            {touched && address.trim() === "" && (
+            {touched && detailAddress.trim() === "" && (
               <span className="mt-1 block text-[12px] text-grade-danger">
-                주소를 입력해주세요.
+                상세주소를 입력해주세요.
               </span>
             )}
           </Field>

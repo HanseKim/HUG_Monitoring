@@ -34,7 +34,7 @@ export function MonitorSearch({ query, onQueryChange, filter, onFilterChange }: 
             key={f.value}
             type="button"
             onClick={() => onFilterChange(f.value)}
-            className={`rounded-full border px-3.5 py-1.5 text-[13px] transition-colors duration-fast ${
+            className={`rounded-[3px] border px-3.5 py-1.5 text-[13px] transition-colors duration-fast ${
               filter === f.value
                 ? "border-monitor bg-monitor-soft font-bold text-monitor"
                 : "border-hairline bg-surface text-muted hover:text-label"

@@ -31,7 +31,7 @@ type InputProps = InputHTMLAttributes<HTMLInputElement> & {
 export function Input({ focusRing = "focus:border-primary", className = "", ...rest }: InputProps) {
   return (
     <input
-      className={`h-10 w-full rounded border border-hairline bg-surface px-3 text-[14px] text-ink outline-none transition-colors duration-fast placeholder:text-faint ${focusRing} ${className}`}
+      className={`h-11 w-full rounded-[3px] border border-hairline bg-surface px-3.5 text-[14px] text-ink outline-none transition-colors duration-fast placeholder:text-faint ${focusRing} ${className}`}
       {...rest}
     />
   );
@@ -52,7 +52,7 @@ export function Select({
 }: SelectProps) {
   return (
     <select
-      className={`h-10 w-full rounded border border-hairline bg-surface px-3 text-[14px] text-ink outline-none transition-colors duration-fast ${focusRing} ${className}`}
+      className={`h-11 w-full rounded-[3px] border border-hairline bg-surface px-3 text-[14px] text-ink outline-none transition-colors duration-fast ${focusRing} ${className}`}
       {...rest}
     >
       {placeholder && <option value="">{placeholder}</option>}

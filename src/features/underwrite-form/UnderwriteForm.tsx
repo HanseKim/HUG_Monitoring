@@ -5,8 +5,8 @@ import { HOUSE_TYPES } from "@/entities/assessment";
 import { Button, Card, Field, Input, Select } from "@/shared/ui";
 import { comma, uncomma } from "@/shared/lib/format";
 import { getTab } from "@/shared/config/tabs";
-
-const SIDO = ["서울", "부산", "대구", "인천", "광주", "대전", "울산", "세종", "경기", "강원", "충북", "충남", "전북", "전남", "경북", "경남", "제주"] as const;
+import { SIDO_LIST, SIGUNGU_MAP } from "@/shared/config/regions";
+import { useRegionStore } from "@/shared/model/region";
 
 const genId = () =>
   `A-${new Date().getFullYear()}-${String(Math.floor(Math.random() * 10000)).padStart(4, "0")}`;
@@ -19,8 +19,7 @@ type Props = {
 export function UnderwriteForm({ loading, onSubmit }: Props) {
   const accent = getTab("underwrite").accent;
   const [applicationId, setApplicationId] = useState(genId());
-  const [sido, setSido] = useState("");
-  const [sigungu, setSigungu] = useState("");
+  const { sido, sigungu, setSido, setSigungu } = useRegionStore();
   const [houseType, setHouseType] = useState("");
   const [areaM2, setAreaM2] = useState("");
   const [deposit, setDeposit] = useState("");
@@ -79,19 +78,18 @@ export function UnderwriteForm({ loading, onSubmit }: Props) {
               onChange={(e) => setApplicationId(e.target.value)}
             />
           </Field>
-          <Field label="시도" required>
+          <Field label="시도" required hint="사이드바의 기준 지역과 연동됩니다">
             <Select
               focusRing={accent.focusRing}
-              options={SIDO}
-              placeholder="선택"
+              options={SIDO_LIST}
               value={sido}
               onChange={(e) => setSido(e.target.value)}
             />
           </Field>
           <Field label="시군구" required>
-            <Input
+            <Select
               focusRing={accent.focusRing}
-              placeholder="예: 강서구"
+              options={SIGUNGU_MAP[sido] ?? []}
               value={sigungu}
               onChange={(e) => setSigungu(e.target.value)}
             />

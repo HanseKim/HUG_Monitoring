@@ -18,10 +18,10 @@ export function Button({
   ...rest
 }: Props) {
   const base =
-    "inline-flex h-12 items-center justify-center gap-2 rounded-lg px-6 text-[16px] font-bold transition-colors duration-fast disabled:cursor-not-allowed";
+    "inline-flex h-11 items-center justify-center gap-2 rounded-[4px] px-6 text-[15px] font-bold tracking-[-0.3px] transition-colors duration-fast disabled:cursor-not-allowed";
   const style =
     variant === "primary"
-      ? `${accentBg} text-white disabled:bg-divider disabled:text-faint`
+      ? `${accentBg} text-white hover:opacity-90 disabled:bg-divider disabled:text-faint disabled:opacity-100`
       : "border border-hairline bg-surface text-label hover:bg-canvas disabled:text-faint";
   return (
     <button
